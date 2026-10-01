@@ -198,6 +198,9 @@
     attribute: 'arco-theme',
     valueDark: 'dark',
     valueLight: 'light',
+    // 固定默认浅色：不设 initialValue 时 VueUse 跟随系统深浅色，
+    // 深色系统环境下登录过一次 body 就被钉上 dark，退出后登录页变灰
+    initialValue: 'light',
     storageKey: 'arco-theme',
     onChanged(dark: boolean) {
       // overridden default behavior

@@ -42,6 +42,8 @@
       align-items: center;
       justify-content: center;
       padding-bottom: 40px;
+      // body 是全局浅灰画布（供内页白卡浮层），登录页右侧单独铺白
+      background-color: var(--color-bg-1);
     }
 
     .footer {

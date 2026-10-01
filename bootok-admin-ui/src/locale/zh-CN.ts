@@ -22,6 +22,7 @@ export default {
   'menu.content': '内容管理',
   'menu.content.article': '文章管理',
   'navbar.action.locale': '切换为中文',
+  'messageBox.logout': '退出登录',
   ...localeSettings,
   ...localeLogin,
   ...localeSuccess,

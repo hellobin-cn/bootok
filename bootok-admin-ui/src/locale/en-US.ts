@@ -22,6 +22,7 @@ export default {
   'menu.content': 'Content',
   'menu.content.article': 'Article',
   'navbar.action.locale': 'Switch to English',
+  'messageBox.logout': 'Logout',
   ...localeSettings,
   ...localeLogin,
   ...localeSuccess,

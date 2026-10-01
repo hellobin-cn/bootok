@@ -24,20 +24,33 @@ class ResourceController extends Controller
 
     /**
      * 解析模型并校验动作白名单，失败时直接返回错误响应
+     *
+     * 返回类型放宽为 support\Model：自动资源模型必须继承 app\model\Model
+     * （filter/setData/form 等自动资源能力都在基类），但基类不匹配时
+     * 给出明确报错，而不是深层调用的 TypeError
      */
-    protected function resolve(string $action): Model|Response
+    protected function resolve(string $action): \support\Model|Response
     {
         if ($this->modelClass) {
-            return new $this->modelClass();
+            $model = new $this->modelClass();
+        } else {
+            $class = ModelResolver::resolve($this->request->route?->param('model') ?? '');
+            if (!$class) {
+                return $this->error(Code::NOT_FOUND->getDescription(), Code::NOT_FOUND->value);
+            }
+            if (!ModelResolver::attribute($class)->allows($action)) {
+                return $this->error(Code::NOT_FOUND->getDescription(), Code::NOT_FOUND->value);
+            }
+            $model = new $class();
         }
-        $class = ModelResolver::resolve($this->request->route?->param('model') ?? '');
-        if (!$class) {
-            return $this->error(Code::NOT_FOUND->getDescription(), Code::NOT_FOUND->value);
+        if (!$model instanceof Model) {
+            throw new \RuntimeException(sprintf(
+                '自动资源模型 %s 必须继承 %s（filter/setData/form 等能力依赖基类）',
+                get_class($model),
+                Model::class
+            ));
         }
-        if (!ModelResolver::attribute($class)->allows($action)) {
-            return $this->error(Code::NOT_FOUND->getDescription(), Code::NOT_FOUND->value);
-        }
-        return new $class();
+        return $model;
     }
 
     public function create(): Response

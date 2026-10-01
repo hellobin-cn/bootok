@@ -79,6 +79,9 @@
       @cancel="modalCancel"
     >
       <a-form ref="myForm" :model="formData">
+        <!-- 字段栅格：字段类用 Field::col() 声明 24 栅格跨度（默认 24 通栏，两列布局用 12） -->
+        <a-row :gutter="16">
+        <a-col v-for="item in formItems" :key="item.field" :span="item.col ?? 24">
         <a-form-item
           :field="item.field"
           :label="item.label"
@@ -88,8 +91,6 @@
               ? [{ required: true, message: `${item.label}不能为空` }]
               : undefined
           "
-          v-for="item in formItems"
-          :key="item.field"
         >
           <template v-if="item.type === 'select'">
             <a-select
@@ -189,12 +190,15 @@
             />
           </template>
         </a-form-item>
+        </a-col>
+        </a-row>
       </a-form>
     </a-modal>
   </div>
 </template>
 <script setup lang="ts">
   import { computed, onMounted, type PropType, ref, useSlots } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
   import {
     type FileItem,
     Message,
@@ -271,6 +275,9 @@
 
   let id: string | number | null = null;
 
+  const route = useRoute();
+  const router = useRouter();
+
   const slots = useSlots();
   // 透传给 a-table 的自定义列插槽（排除crud自身消费的插槽）
   const tableSlots = computed(() => {
@@ -308,7 +315,9 @@
 
   onMounted(() => {
     buildTableColumns();
-    getItems();
+    // 从 URL query 恢复页码，刷新后停留在当前页
+    const qp = parseInt(String(route.query.page ?? '1'), 10);
+    getItems(Number.isFinite(qp) && qp > 0 ? qp : 1);
   });
 
   function buildFileList(name: string, url: string): FileItem[] {
@@ -390,13 +399,21 @@
 
   function changePage(val: number) {
     currentPage.value = val;
+    syncPageQuery();
     getItems();
   }
 
   function changePageSize(val: number) {
     pageSize.value = val;
     currentPage.value = 1;
+    syncPageQuery();
     getItems();
+  }
+
+  // 页码同步到 URL query，刷新后可恢复（page-layout 的 key 只按 path，
+  // 此处 router.replace 不会引发页面重挂载）
+  function syncPageQuery() {
+    router.replace({ query: { ...route.query, page: String(currentPage.value) } });
   }
 
   function setTableData(

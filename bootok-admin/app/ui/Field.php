@@ -59,6 +59,16 @@ abstract class Field
     }
 
     /**
+     * 表单栅格跨度（24 等分制，默认 24 通栏；12 即半宽两列布局），
+     * crud 弹窗按该值包裹 a-col
+     */
+    public function col(int $span): static
+    {
+        $this->extra['col'] = max(1, min(24, $span));
+        return $this;
+    }
+
+    /**
      * 文本类字段为长度上限，数值类字段为最大值
      */
     public function max(int|float $value): static

@@ -34,7 +34,9 @@ class Permission implements MiddlewareInterface
 
         $subject = $request->route?->param('model');
         if (!$subject) {
-            $subject = str_replace(['\app\controller\\', 'Controller'], ['', ''], $request->controller ?? '');
+            // 控制器短名：取类名最后一段并去掉 Controller 后缀（兼容子命名空间）
+            $controller = $request->controller ?? '';
+            $subject = preg_replace('/Controller$/', '', substr($controller, (int)strrpos($controller, '\\') + 1));
         }
 
         // 读操作：模型声明了 read 权限点时校验，否则放行

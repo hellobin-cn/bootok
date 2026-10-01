@@ -70,8 +70,11 @@
         return result;
       };
       listenerRouteChange((newRoute) => {
-        const { requiresAuth, activeMenu, hideInMenu } = newRoute.meta;
-        if (requiresAuth && (!hideInMenu || activeMenu)) {
+        // 路由变化总是同步菜单选中态：requiresAuth 只用于 purview 权限过滤
+        // （hooks/permission 的 accessRouter），不应决定选中态联动，
+        // 否则 requiresAuth=false 的页面（如工作台）切换时高亮错乱
+        const { activeMenu, hideInMenu } = newRoute.meta;
+        if (!hideInMenu || activeMenu) {
           const menuOpenKeys = findMenuOpenKeys(
             (activeMenu || newRoute.name) as string
           );

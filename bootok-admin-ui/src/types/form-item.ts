@@ -19,6 +19,8 @@ export default interface FormItem {
   required?: boolean;
   default?: number | string;
   placeholder?: string;
+  /** 24 栅格制表单跨度（Field::col() 声明，默认 24 通栏） */
+  col?: number;
   max?: number;
   min?: number;
   step?: number;

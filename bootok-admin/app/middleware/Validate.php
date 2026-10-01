@@ -20,7 +20,10 @@ class Validate implements MiddlewareInterface
         if ($name) {
             $name = str_replace(' ', '', ucwords(str_replace('-', ' ', $name)));
         } else {
-            $name = str_replace(['\app\controller\\', 'Controller'], ['', ''], $request->controller ?? '');
+            // 控制器短名：取类名最后一段并去掉 Controller 后缀（兼容子命名空间，
+            // 写死 \app\controller\ 前缀在控制器移入子目录时会解析错）
+            $controller = $request->controller ?? '';
+            $name = preg_replace('/Controller$/', '', substr($controller, (int)strrpos($controller, '\\') + 1));
         }
         $class = 'app\\validate\\' . $name;
         if ($name && class_exists($class) && $request->action) {
