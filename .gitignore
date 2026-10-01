@@ -22,3 +22,6 @@ Thumbs.db
 # VitePress
 bootok-docs/docs/.vitepress/cache/
 bootok-docs/docs/.vitepress/dist/
+
+# ZCode 本地工具
+.zcodeignore
