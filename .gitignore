@@ -1,0 +1,24 @@
+# 依赖与产物
+vendor/
+node_modules/
+dist/
+build/
+coverage/
+
+# 运行时与本地环境
+runtime/
+.env
+.env.*
+!.env.example
+*.log
+logs/
+
+# 编辑器与系统
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# VitePress
+bootok-docs/docs/.vitepress/cache/
+bootok-docs/docs/.vitepress/dist/

@@ -1,0 +1,17 @@
+export default {
+  'login.form.title': 'Login',
+  'login.form.userName.errMsg': 'Username required',
+  'login.form.password.errMsg': 'Password required',
+  'login.form.login.errMsg': 'Login error, please retry',
+  'login.form.login.success': 'Welcome',
+  'login.form.userName.placeholder': 'Username',
+  'login.form.password.placeholder': 'Password',
+  'login.form.rememberPassword': 'Remember me',
+  'login.form.login': 'Login',
+  'login.banner.slogan1': 'General Admin System',
+  'login.banner.subSlogan1': 'Model annotation driven resources',
+  'login.banner.slogan2': 'Form DSL',
+  'login.banner.subSlogan2': 'Backend field classes describe forms',
+  'login.banner.slogan3': 'Purview permission',
+  'login.banner.subSlogan3': 'One set for menus and APIs',
+};

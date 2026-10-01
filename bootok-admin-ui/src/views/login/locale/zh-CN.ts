@@ -1,0 +1,17 @@
+export default {
+  'login.form.title': '登录',
+  'login.form.userName.errMsg': '用户名不能为空',
+  'login.form.password.errMsg': '密码不能为空',
+  'login.form.login.errMsg': '登录出错，请刷新重试',
+  'login.form.login.success': '欢迎使用',
+  'login.form.userName.placeholder': '用户名',
+  'login.form.password.placeholder': '密码',
+  'login.form.rememberPassword': '记住密码',
+  'login.form.login': '登录',
+  'login.banner.slogan1': '通用后台管理系统',
+  'login.banner.subSlogan1': '模型注解驱动，一个模型即完整资源',
+  'login.banner.slogan2': '表单DSL声明界面',
+  'login.banner.subSlogan2': '后端字段类描述表单，前端通用组件渲染',
+  'login.banner.slogan3': '一套purview权限',
+  'login.banner.subSlogan3': '同时驱动菜单过滤与接口鉴权',
+};
