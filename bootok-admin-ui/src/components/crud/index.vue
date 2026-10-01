@@ -78,7 +78,7 @@
       :top="'40px'"
       @cancel="modalCancel"
     >
-      <a-form ref="myForm" :model="formData">
+      <a-form ref="myForm" :model="formData" label-align="right" auto-label-width>
         <!-- 字段栅格：字段类用 Field::col() 声明 24 栅格跨度（默认 24 通栏，两列布局用 12） -->
         <a-row :gutter="16">
         <a-col v-for="item in formItems" :key="item.field" :span="item.col ?? 24">
