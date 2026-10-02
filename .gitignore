@@ -25,3 +25,4 @@ bootok-docs/docs/.vitepress/dist/
 
 # ZCode 本地工具
 .zcodeignore
+http/
