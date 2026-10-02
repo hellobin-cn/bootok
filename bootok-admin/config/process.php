@@ -20,7 +20,7 @@ $processes = [
     // 管理端HTTP：管理后台接口 + /auto 自动资源，运营使用，进程数无需大
     'admin' => [
         'handler' => Http::class,
-        'listen' => 'http://0.0.0.0:8787',
+        'listen' => getenv('ADMIN_LISTEN') ?: 'http://0.0.0.0:8787',
         'count' => 4,
         'user' => '',
         'group' => '',
@@ -37,7 +37,7 @@ $processes = [
     // 用户端HTTP：客户端API，承载弹性流量，进程数随流量放大
     'client' => [
         'handler' => Http::class,
-        'listen' => 'http://0.0.0.0:8788',
+        'listen' => getenv('CLIENT_LISTEN') ?: 'http://0.0.0.0:8788',
         'count' => 8,
         'user' => '',
         'group' => '',

@@ -30,12 +30,16 @@ class Cross implements MiddlewareInterface
             return response('', 403);
         }
 
-        // 给响应添加跨域相关的http头
+        // 给响应添加跨域相关的http头 + 安全响应头
         $response->withHeaders(array_merge([
             'Access-Control-Allow-Credentials' => 'true',
             'Access-Control-Allow-Methods'     => $request->header('access-control-request-method', '*'),
             'Access-Control-Allow-Headers'     => $request->header('access-control-request-headers', '*'),
             'Access-Control-Expose-Headers'    => 'X-Renewed-Token',
+            // 安全响应头：防点击劫持/类型嗅探/引用泄漏
+            'X-Frame-Options'                  => 'SAMEORIGIN',
+            'X-Content-Type-Options'           => 'nosniff',
+            'Referrer-Policy'                  => 'strict-origin-when-cross-origin',
         ], $allowOrigin ? ['Access-Control-Allow-Origin' => $allowOrigin] : []));
 
         return $response;

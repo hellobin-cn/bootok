@@ -30,6 +30,17 @@ const SYSTEM: AppRouteRecordRaw = {
       },
     },
     {
+      path: 'setting',
+      name: 'SystemSetting',
+      component: () => import('@/views/system/setting.vue'),
+      meta: {
+        locale: 'menu.system.setting',
+        title: '参数设置',
+        requiresAuth: true,
+        perms: ['config.save'],
+      },
+    },
+    {
       path: 'log',
       name: 'SystemLog',
       component: () => import('@/views/system/log.vue'),
@@ -38,6 +49,49 @@ const SYSTEM: AppRouteRecordRaw = {
         title: '操作日志',
         requiresAuth: true,
         perms: ['operation-log.rows'],
+      },
+    },
+    {
+      path: 'login-log',
+      name: 'SystemLoginLog',
+      component: () => import('@/views/system/login-log.vue'),
+      meta: {
+        locale: 'menu.system.loginLog',
+        title: '登录日志',
+        requiresAuth: true,
+        perms: ['login-log.rows'],
+      },
+    },
+    {
+      path: 'online',
+      name: 'SystemOnline',
+      component: () => import('@/views/system/online.vue'),
+      meta: {
+        locale: 'menu.system.online',
+        title: '在线会话',
+        requiresAuth: true,
+      },
+    },
+    {
+      path: 'attachment',
+      name: 'SystemAttachment',
+      component: () => import('@/views/system/attachment.vue'),
+      meta: {
+        locale: 'menu.system.attachment',
+        title: '附件管理',
+        requiresAuth: true,
+        perms: ['attachment.rows'],
+      },
+    },
+    {
+      path: 'task',
+      name: 'SystemTask',
+      component: () => import('@/views/system/task.vue'),
+      meta: {
+        locale: 'menu.system.task',
+        title: '计划任务',
+        requiresAuth: true,
+        perms: ['task.run'],
       },
     },
   ],

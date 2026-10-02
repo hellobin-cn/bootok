@@ -7,6 +7,8 @@
     :columns="columns"
     :filter="filter"
     modal-width="1000px"
+    trash
+    :danger-confirm="true"
   >
     <template #search>
       <a-card :bordered="false" style="margin-bottom: 12px">

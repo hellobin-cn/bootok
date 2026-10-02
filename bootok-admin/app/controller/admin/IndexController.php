@@ -1,9 +1,10 @@
 <?php
 
-namespace app\controller;
+namespace app\controller\admin;
 
+use app\controller\Controller;
 use app\model\Admin;
-use app\service\PermissionService;
+use app\service\admin\PermissionService;
 use support\Response;
 
 class IndexController extends Controller

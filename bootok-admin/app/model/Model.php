@@ -23,6 +23,52 @@ class Model extends \support\Model
      */
     protected $guarded = [];
 
+    /**
+     * 列表/详情/导出时脱敏的字段（snake列名），规则按值特征自动匹配
+     * 例：protected array $mask = ['phone', 'id_card'];
+     */
+    protected array $mask = [];
+
+    /**
+     * 字段级变更审计开关：true 时 /auto 写操作自动记录字段 diff 到 sys_change_log
+     */
+    public bool $auditChange = false;
+
+    public function maskFields(): array
+    {
+        return $this->mask;
+    }
+
+    /**
+     * 脱敏规则：邮箱保首字符与域名；11位纯数字按手机号；长串按证件风格；其余通用截断
+     */
+    public static function maskValue(string $value): string
+    {
+        if (str_contains($value, '@')) {
+            [$name, $domain] = explode('@', $value, 2);
+            return mb_substr($name, 0, 1) . '***@' . $domain;
+        }
+        $len = mb_strlen($value);
+        if ($len >= 15) {
+            return substr($value, 0, 6) . '********' . substr($value, -4);
+        }
+        if ($len >= 11 && ctype_digit($value)) {
+            return substr($value, 0, 3) . '****' . substr($value, -4);
+        }
+        if ($len > 4) {
+            return mb_substr($value, 0, 1) . '****';
+        }
+        return '****';
+    }
+
+    /**
+     * 导出表头映射（可选）：['column' => '表头']，空则使用表列名（$hidden 列不导出）
+     */
+    public function exportMap(): array
+    {
+        return [];
+    }
+
     protected function getCreatedAtAttribute(): string
     {
         if (($this->attributes['created_at'] ?? '') == '1000-01-01 00:00:00') {

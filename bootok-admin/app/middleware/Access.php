@@ -4,7 +4,7 @@ namespace app\middleware;
 
 use app\enum\Code;
 use app\model\Admin;
-use app\service\TokenService;
+use app\service\admin\AdminTokenService;
 use DI\Attribute\Inject;
 use support\Cache;
 use support\Request;
@@ -23,7 +23,7 @@ class Access implements MiddlewareInterface
     private const INFO_CACHE_TTL = 60;
 
     #[Inject]
-    private ?TokenService $tokenService = null;
+    private ?AdminTokenService $tokenService = null;
 
     public function process(Request|\Webman\Http\Request $request, callable $handler): Response
     {

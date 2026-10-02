@@ -1,6 +1,6 @@
 <?php
 
-namespace app\service;
+namespace app\service\admin;
 
 use app\model\Group;
 use support\Cache;

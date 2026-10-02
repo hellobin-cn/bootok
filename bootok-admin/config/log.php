@@ -29,4 +29,22 @@ return [
             ]
         ],
     ],
+    // 结构化日志渠道：Log::channel('json')->info('事件', ['context' => ...])
+    // 单行 JSON，供 filebeat/SLS 等采集器直接对接（集中日志接入点）
+    'json' => [
+        'handlers' => [
+            [
+                'class' => Monolog\Handler\RotatingFileHandler::class,
+                'constructor' => [
+                    runtime_path() . '/logs/json.log',
+                    14,
+                    Monolog\Logger::INFO,
+                ],
+                'formatter' => [
+                    'class' => Monolog\Formatter\JsonFormatter::class,
+                    'constructor' => [],
+                ],
+            ]
+        ],
+    ],
 ];

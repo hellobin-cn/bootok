@@ -5,10 +5,12 @@
  * 全部管理端接口在此定义：登录、自身端点、/auto 自动资源
  */
 
-use app\controller\AdminController;
-use app\controller\IndexController;
-use app\controller\ResourceController;
-use app\controller\UploadController;
+use app\controller\admin\AdminController;
+use app\controller\admin\ConfigController;
+use app\controller\admin\IndexController;
+use app\controller\admin\ResourceController;
+use app\controller\admin\TaskController;
+use app\controller\admin\UploadController;
 use app\middleware\Access;
 use app\middleware\AdminPortGuard;
 use app\middleware\OperationLog;
@@ -34,18 +36,32 @@ Route::group('', function () {
         Route::get('/user/info', [IndexController::class, 'getUserInfo']);
         Route::post('/upload', [UploadController::class, 'upload']);
         Route::post('/upload/editor', [UploadController::class, 'editorUpload']);
+        // 在线会话（仅超管，控制器内守卫）
+        Route::get('/admin/online', [AdminController::class, 'online']);
+        Route::post('/admin/online/{adminId:\d+}/kick', [AdminController::class, 'kick']);
+        // 参数设置（配置中心编辑侧）
+        Route::get('/config/settings', [ConfigController::class, 'settings']);
+        Route::post('/config/settings', [ConfigController::class, 'save']);
+        // 计划任务管理（list 只读；run 需权限点 task.run）
+        Route::get('/task/list', [TaskController::class, 'list']);
+        Route::post('/task/run', [TaskController::class, 'run']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
-        // 字面量段（rows/all/form/attachment）必须注册在 {id} 通配之前
+        // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前
         Route::group('/auto', function () {
             Route::post('/{model}', [ResourceController::class, 'create']);
             Route::post('/{model}/rows', [ResourceController::class, 'getRows']);
+            Route::post('/{model}/export', [ResourceController::class, 'export']);
+            Route::post('/{model}/batch-delete', [ResourceController::class, 'batchDelete']);
             Route::get('/{model}/all', [ResourceController::class, 'getAll']);
             Route::get('/{model}/form', [ResourceController::class, 'getForm']);
+            Route::post('/{model}/trash', [ResourceController::class, 'trash']);
             Route::delete('/{model}/attachment/{field}/{id}', [ResourceController::class, 'deleteFile']);
             Route::get('/{model}/{id}', [ResourceController::class, 'getItem']);
             Route::put('/{model}/{id}', [ResourceController::class, 'edit']);
+            Route::put('/{model}/{id}/restore', [ResourceController::class, 'restore']);
             Route::delete('/{model}/{id}', [ResourceController::class, 'delete']);
+            Route::delete('/{model}/{id}/force', [ResourceController::class, 'forceDelete']);
         })->middleware([Permission::class]);
 
     })->middleware([Access::class, Validate::class, OperationLog::class]);

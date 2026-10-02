@@ -113,6 +113,31 @@ export default class BaseApi {
     return this.delete<T>(`/auto/${this.modelName}/${id}`);
   }
 
+  // 批量删除（后端复用 delete 权限点）
+  public batchDelete<T = any>(ids: (number | string)[]) {
+    return this.post<T>(`/auto/${this.modelName}/batch-delete`, { ids });
+  }
+
+  // 回收站列表（模型启用软删除时）
+  public getTrashRows<T = any>(
+    page: number,
+    data: Object = {},
+    pageSize: number = 15
+  ) {
+    return this.post<T>(
+      `/auto/${this.modelName}/trash?page=${page}&page_size=${pageSize}`,
+      data
+    );
+  }
+
+  public restoreItem<T = any>(id: number | string) {
+    return this.put<T>(`/auto/${this.modelName}/${id}/restore`);
+  }
+
+  public forceDeleteItem<T = any>(id: number | string) {
+    return this.delete<T>(`/auto/${this.modelName}/${id}/force`);
+  }
+
   public deleteAttachment(id: string | number, fieldName: string) {
     const snakeField = field.strHump2Underline(fieldName);
     return this.delete(

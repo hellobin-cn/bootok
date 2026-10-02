@@ -3,7 +3,7 @@
 namespace app\model;
 
 use app\attribute\AutoResource;
-use app\service\PermissionService;
+use app\service\admin\PermissionService;
 use app\ui\Password;
 use app\ui\Radio;
 use app\ui\Select;

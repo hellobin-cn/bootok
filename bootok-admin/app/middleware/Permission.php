@@ -4,7 +4,7 @@ namespace app\middleware;
 
 use app\enum\Code;
 use app\service\ModelResolver;
-use app\service\PermissionService;
+use app\service\admin\PermissionService;
 use DI\Attribute\Inject;
 use support\Request;
 use Webman\Http\Response;
@@ -19,7 +19,7 @@ use Webman\MiddlewareInterface;
 class Permission implements MiddlewareInterface
 {
     /** 默认放行的读动作 */
-    private const READ_ACTIONS = ['getRows', 'getItem', 'getForm', 'getAll'];
+    private const READ_ACTIONS = ['getRows', 'getItem', 'getForm', 'getAll', 'settings', 'list'];
 
     #[Inject]
     private ?PermissionService $permissionService = null;
@@ -49,8 +49,12 @@ class Permission implements MiddlewareInterface
             return json_error($request->header('request-id', ''), Code::FORBIDDEN->getDescription(), Code::FORBIDDEN->value);
         }
 
-        // 写操作：一律校验权限点
-        $mark = strtolower($subject . '.' . $request->action);
+        // 写操作：一律校验权限点（批量删除/彻底删除复用 delete 权限点）
+        $markAction = match ($request->action) {
+            'batchDelete', 'forceDelete' => 'delete',
+            default => $request->action,
+        };
+        $mark = strtolower($subject . '.' . $markAction);
         if (!$this->permissionService->check($request->getCustomData('groupId', 0), $mark)) {
             return json_error($request->header('request-id', ''), Code::FORBIDDEN->getDescription(), Code::FORBIDDEN->value);
         }

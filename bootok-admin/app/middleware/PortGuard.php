@@ -19,7 +19,13 @@ abstract class PortGuard implements MiddlewareInterface
 
     public function process(Request|\Webman\Http\Request $request, callable $handler): Response
     {
-        if ($request->getLocalPort() !== $this->allowedPort()) {
+        $actual = $request->getLocalPort();
+        if ($actual !== $this->allowedPort()) {
+            \support\Log::channel('json')->info('port_guard_mismatch', [
+                'guard'    => static::class,
+                'expected' => $this->allowedPort(),
+                'actual'   => $actual,
+            ]);
             return json_error($request->header('request-id', ''), Code::NOT_FOUND->getDescription(), Code::NOT_FOUND->value);
         }
         return $handler($request);

@@ -25,6 +25,17 @@ const CONTENT: AppRouteRecordRaw = {
         perms: ['article.create', 'article.edit', 'article.delete'],
       },
     },
+    {
+      path: 'notice',
+      name: 'ContentNotice',
+      component: () => import('@/views/content/notice.vue'),
+      meta: {
+        locale: 'menu.content.notice',
+        title: '公告管理',
+        requiresAuth: true,
+        perms: ['notice.create', 'notice.edit', 'notice.delete'],
+      },
+    },
   ],
 };
 

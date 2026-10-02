@@ -13,11 +13,4 @@
  */
 
 return [
-    'jwt_key'               => config('jwt.key'),
-    'jwt_iss'               => config('jwt.iss'),
-    'jwt_aud'               => config('jwt.aud'),
-    'jwt_leeway'            => config('jwt.leeway'),
-    'access_token_exp'      => config('jwt.access_token_exp'),
-    'refresh_token_exp'     => config('jwt.refresh_token_exp'),
-    'token_renew_threshold' => config('jwt.token_renew_threshold'),
 ];

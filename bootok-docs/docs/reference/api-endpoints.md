@@ -12,6 +12,12 @@
 | POST | `/logout` | 退出（销毁单点记录） |
 | POST | `/password` | 改密 `{old_password, new_password, re_password}` |
 | GET | `/user/info` | 当前管理员 `{admin_name, is_super, purview}` |
+| GET | `/admin/online` | 在线会话列表（仅超管） |
+| POST | `/admin/online/{id}/kick` | 强制下线（仅超管） |
+| GET | `/config/settings` | 参数设置（分组+类型化值） |
+| POST | `/config/settings` | 批量保存 `{items:{key:value}}`（需 `config.save`） |
+| GET | `/task/list` | 任务注册表+最近执行 |
+| POST | `/task/run` | 手动触发任务 `{name}`（需 `task.run`） |
 | POST | `/upload` | 上传 `{file, remark?}` → `{file_url, remark}` |
 | POST | `/upload/editor` | 编辑器上传（wangeditor 协议） |
 
@@ -29,6 +35,11 @@
 | PUT | `/auto/{model}/{id}` | edit | `{model}.edit` |
 | DELETE | `/auto/{model}/{id}` | delete | `{model}.delete` |
 | DELETE | `/auto/{model}/attachment/{field}/{id}` | deleteFile | `{model}.deletefile` |
+| POST | `/auto/{model}/export` | export | `{model}.export` |
+| POST | `/auto/{model}/batch-delete` | batchDelete | `{model}.delete`（复用） |
+| POST | `/auto/{model}/trash` | trash | 默认放行¹（软删除模型） |
+| PUT | `/auto/{model}/{id}/restore` | restore | `{model}.restore` |
+| DELETE | `/auto/{model}/{id}/force` | forceDelete | `{model}.delete`（复用） |
 
 ¹ 注解声明 `read: '{model}.rows'` 时需要该权限点，见[权限体系](/guide/permission)。
 
