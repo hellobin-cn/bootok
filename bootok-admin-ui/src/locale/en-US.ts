@@ -20,6 +20,7 @@ export default {
   'menu.system.online': 'Online Sessions',
   'menu.system.attachment': 'Attachment',
   'menu.system.task': 'Task',
+  'menu.system.ssl': 'SSL Certificates',
   'menu.auth': 'Auth',
   'menu.auth.admin': 'Admin',
   'menu.auth.group': 'Group',

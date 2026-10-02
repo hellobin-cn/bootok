@@ -84,6 +84,16 @@ const SYSTEM: AppRouteRecordRaw = {
       },
     },
     {
+      path: 'ssl',
+      name: 'SystemSsl',
+      component: () => import('@/views/system/ssl.vue'),
+      meta: {
+        locale: 'menu.system.ssl',
+        title: 'SSL 证书',
+        requiresAuth: true,
+      },
+    },
+    {
       path: 'task',
       name: 'SystemTask',
       component: () => import('@/views/system/task.vue'),

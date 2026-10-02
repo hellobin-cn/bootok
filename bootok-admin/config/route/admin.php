@@ -9,6 +9,7 @@ use app\controller\admin\AdminController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\IndexController;
 use app\controller\admin\ResourceController;
+use app\controller\admin\SslTaskController;
 use app\controller\admin\TaskController;
 use app\controller\admin\UploadController;
 use app\middleware\Access;
@@ -45,6 +46,10 @@ Route::group('', function () {
         // 计划任务管理（list 只读；run 需权限点 task.run）
         Route::get('/task/list', [TaskController::class, 'list']);
         Route::post('/task/run', [TaskController::class, 'run']);
+        // SSL 证书签发（同步阻塞 60-120 秒，前端转圈等待）
+        Route::post('/ssl/order', [SslTaskController::class, 'order']);
+        // 证书产物下载（type: fullchain / privkey）
+        Route::get('/ssl/download/{id:\d+}/{type:[a-z]+}', [SslTaskController::class, 'download']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
         // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前

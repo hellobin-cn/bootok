@@ -20,6 +20,7 @@ export default {
   'menu.system.online': '在线会话',
   'menu.system.attachment': '附件管理',
   'menu.system.task': '计划任务',
+  'menu.system.ssl': 'SSL 证书',
   'menu.auth': '权限管理',
   'menu.auth.admin': '管理员',
   'menu.auth.group': '权限组',

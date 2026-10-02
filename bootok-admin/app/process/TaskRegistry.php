@@ -48,6 +48,12 @@ class TaskRegistry
     {
         if (self::$dynamicActions === null) {
             self::$dynamicActions = [
+                'ssl.renew_check' => [
+                    'title'  => 'SSL 证书续期巡检（到期前 30 天自动重签已签发证书）',
+                    'action' => function () {
+                        \app\service\SslRenewService::renewDue();
+                    },
+                ],
                 'system.health_check' => [
                     'title'  => '系统健康巡检（检查Redis心跳与最近任务失败）',
                     'action' => function () {

@@ -4,15 +4,56 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "be2491bf852c2068b1fe37719be72a56",
+    "content-hash": "9f01217eba7ff61c66c53f146d5222e6",
     "packages": [
+        {
+            "name": "bootok/acme",
+            "version": "dev-master",
+            "dist": {
+                "type": "path",
+                "url": "../acme",
+                "reference": "1117dfb21e81a63f2e9a805ae1b62192aa9de710"
+            },
+            "require": {
+                "ext-openssl": "*",
+                "php": ">=8.2"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "BootOk\\Acme\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "BootOk\\Acme\\Tests\\": "tests/"
+                }
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "纯 PHP 实现的 ACME v2 (RFC 8555) 客户端，DNS-01 验证，PHP 8.2+，无重依赖",
+            "keywords": [
+                "acme",
+                "certificate",
+                "dns-01",
+                "letsencrypt",
+                "ssl",
+                "tls",
+                "wildcard"
+            ],
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
+        },
         {
             "name": "bootok/http",
             "version": "dev-master",
             "dist": {
                 "type": "path",
                 "url": "../http",
-                "reference": "5b21df0aaf4cfc7c7deec515e396580c9c15464f"
+                "reference": "595fc5368336044d56d1e20a90111800536a3261"
             },
             "require": {
                 "php": ">=8.2",
@@ -8948,6 +8989,7 @@
     "aliases": [],
     "minimum-stability": "dev",
     "stability-flags": {
+        "bootok/acme": 20,
         "bootok/http": 20
     },
     "prefer-stable": true,

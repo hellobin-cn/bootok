@@ -24,6 +24,7 @@
         "source": "https://github.com/walkor/webman"
     },
     "require": {
+        "bootok/acme": "@dev",
         "bootok/http": "@dev",
         "firebase/php-jwt": "^7.1",
         "illuminate/events": "^12.64",
@@ -78,6 +79,13 @@
         {
             "type": "path",
             "url": "../http",
+            "options": {
+                "symlink": true
+            }
+        },
+        {
+            "type": "path",
+            "url": "../acme",
             "options": {
                 "symlink": true
             }
