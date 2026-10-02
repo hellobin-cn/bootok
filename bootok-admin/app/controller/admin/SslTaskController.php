@@ -45,7 +45,7 @@ class SslTaskController extends Controller
 
         return new CertificateIssuer(
             caDirectory:   $caDir,
-            accountKeyPem: $accountKey,
+            accountKeyPem: $accountKeyPem,
             email:         $email,
             dns:           $this->dns(),
         );
@@ -109,13 +109,12 @@ class SslTaskController extends Controller
      * 证书产物下载（type: fullchain / privkey）。
      * GET /ssl/download/{id}/{type}
      */
-    public function download(Request $request): Response
+    public function download(Request $request, int $id, string $type = 'fullchain'): Response
     {
-        $row = SslTask::find((int) $request->param('id', 0));
+        $row = SslTask::find($id);
         if ($row === null || $row->status !== 'issued') {
             return $this->error('证书未签发', '4004');
         }
-        $type = (string) $request->route('type', 'fullchain');
         $content = $type === 'privkey' ? $row->cert_key_pem : $row->fullchain_pem;
         if ($content === null || $content === '') {
             return $this->error('产物不存在', '4004');

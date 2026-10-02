@@ -16,7 +16,7 @@ use support\Cache;
  */
 class ConfigService
 {
-    private const CACHE_KEY = 'config:all';
+    private const CACHE_KEY = 'config_all';
 
     /**
      * @return array{values: array<string, mixed>, meta: array<string, array{group: string, type: string, title: string}>}
