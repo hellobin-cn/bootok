@@ -15,6 +15,12 @@ class Cross implements MiddlewareInterface
         // 如果是options请求则返回一个空响应，否则继续向洋葱芯穿越，并得到一个响应
         $response = $request->method() == 'OPTIONS' ? response('', 204) : $handler($request);
 
+        // JSON 响应统一带 charset（框架 json() 助手默认不带，中文会被部分代理/浏览器误判编码）
+        $contentType = $response->getHeader('Content-Type');
+        if ($contentType !== null && str_starts_with($contentType, 'application/json') && !str_contains($contentType, 'charset')) {
+            $response->header('Content-Type', 'application/json; charset=utf-8');
+        }
+
         // 跨域白名单：CORS_ORIGINS=* 反射任意来源（开发用），生产配置具体域名逗号分隔
         $origin = $request->header('origin', '');
         $allowed = array_map('trim', explode(',', (string)get_env('CORS_ORIGINS', '*')));

@@ -53,7 +53,7 @@
         baseURL: import.meta.env.VITE_API_BASE_URL as string,
         headers: { Authorization: `Bearer ${getToken() ?? ''}` },
       });
-      list.value = res.data.data ?? [];
+      list.value = res.data ?? [];
     } catch (e) {
       // 拦截器已提示
     } finally {
@@ -63,7 +63,7 @@
 
   async function kick(adminId: number) {
     try {
-      const res = await axios.post(
+      const res: any = await axios.post(
         `/admin/online/${adminId}/kick`,
         {},
         {
@@ -71,8 +71,8 @@
           headers: { Authorization: `Bearer ${getToken() ?? ''}` },
         }
       );
-      if (res.data.code === '0') {
-        Message.success(res.data.message || '已下线');
+      if (res.code === '0') {
+        Message.success(res.message || '已下线');
         load();
       }
     } catch (e) {

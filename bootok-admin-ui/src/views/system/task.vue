@@ -113,8 +113,8 @@
         <a-form-item label="任务名" required>
           <a-input v-model="editForm.name" placeholder="唯一名称，如 每日对账" />
         </a-form-item>
-        <a-form-item label="Cron 表达式" required help="五段式：分 时 日 月 周">
-          <a-input v-model="editForm.cron" placeholder="*/5 * * * *" />
+        <a-form-item label="Cron 表达式" required help="常用频率直接选择；或切「自定义」可视化编辑">
+          <cron-input v-model="editForm.cron" />
         </a-form-item>
         <a-form-item label="执行动作" required help="动作由代码登记（TaskRegistry::dynamic），后台只做编排">
           <a-select v-model="editForm.action">
@@ -142,6 +142,7 @@
   import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
   import BaseApi from '@/api/base';
+  import CronInput from '@/components/cron-input/index.vue';
   import { getToken } from '@/utils/auth';
 
   const taskApi = new BaseApi('Task');
@@ -168,13 +169,13 @@
   async function load() {
     loading.value = true;
     try {
-      const res = await axios.get('/task/list', {
+      const res: any = await axios.get('/task/list', {
         baseURL: import.meta.env.VITE_API_BASE_URL as string,
         headers: { Authorization: `Bearer ${getToken() ?? ''}` },
       });
-      staticTasks.value = res.data.data?.static ?? [];
-      dynamic.value = res.data.data?.dynamic ?? [];
-      recent.value = res.data.data?.recent ?? [];
+      staticTasks.value = res.data?.static ?? [];
+      dynamic.value = res.data?.dynamic ?? [];
+      recent.value = res.data?.recent ?? [];
     } catch (e) {
       // 拦截器已提示
     } finally {
@@ -237,7 +238,7 @@
 
   async function runTask(name: string) {
     try {
-      const res = await axios.post(
+      const res: any = await axios.post(
         '/task/run',
         { name },
         {
@@ -245,8 +246,8 @@
           headers: { Authorization: `Bearer ${getToken() ?? ''}` },
         }
       );
-      if (res.data.code === '0') {
-        Message.success(res.data.message || '已触发');
+      if (res.code === '0') {
+        Message.success(res.message || '已触发');
         setTimeout(load, 1500);
       }
     } catch (e) {

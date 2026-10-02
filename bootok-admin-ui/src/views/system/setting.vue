@@ -84,7 +84,7 @@
         baseURL: import.meta.env.VITE_API_BASE_URL as string,
         headers: { Authorization: `Bearer ${getToken() ?? ''}` },
       });
-      items.value = res.data.data ?? [];
+      items.value = res.data ?? [];
       const model: { [key: string]: any } = {};
       items.value.forEach((item) => {
         model[item.name] = item.type === 'json' && item.value !== null && typeof item.value !== 'string'
@@ -117,7 +117,7 @@
     }
     saving.value = group;
     try {
-      const res = await axios.post(
+      const res: any = await axios.post(
         '/config/settings',
         { items: payload },
         {
@@ -125,8 +125,8 @@
           headers: { Authorization: `Bearer ${getToken() ?? ''}` },
         }
       );
-      if (res.data.code === '0') {
-        Message.success(res.data.message || '保存成功');
+      if (res.code === '0') {
+        Message.success(res.message || '保存成功');
       }
     } catch (e) {
       // 拦截器已提示
