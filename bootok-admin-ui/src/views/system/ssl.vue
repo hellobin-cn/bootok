@@ -31,7 +31,9 @@
               <a-tag v-else color="blue">{{ record.status }}</a-tag>
             </template>
           </a-table-column>
-          <a-table-column title="到期时间" data-index="expires_at" :width="170" />
+          <a-table-column title="到期时间" :width="170">
+            <template #cell="{ record }">{{ record.expiresAt ?? '-' }}</template>
+          </a-table-column>
           <a-table-column title="操作" :width="230">
             <template #cell="{ record }">
               <a-space>
@@ -78,7 +80,7 @@
           </a-radio-group>
         </a-form-item>
         <a-form-item label="DNS 提供商">
-          <a-input value="阿里云 DNS（凭据在系统配置中维护）" disabled />
+          <a-input model-value="阿里云 DNS（凭据在系统配置中维护）" disabled />
         </a-form-item>
       </a-form>
     </a-modal>
