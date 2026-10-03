@@ -41,6 +41,11 @@ axios.interceptors.response.use(
     if (renewed) {
       setToken(String(renewed));
     }
+    // 二进制流（文件下载 / Excel 导出）不走业务信封检查，原样放行完整 response，
+    // 调用方从 res.data（Blob）/ res.headers 取产物；出错时后端返回 JSON 信封，自然落入下方统一提示
+    if (response.data instanceof Blob) {
+      return response;
+    }
     const res = response.data;
     if (res.code === '0') {
       return res as any;

@@ -163,17 +163,21 @@
   }
 
   async function download(id: number, type: 'fullchain' | 'privkey') {
-    const res = await axios.get(`/ssl/download/${id}/${type}`, {
-      baseURL: import.meta.env.VITE_API_BASE_URL as string,
-      responseType: 'blob',
-      headers: { Authorization: `Bearer ${getToken() ?? ''}` },
-    });
-    const url = URL.createObjectURL(res.data as Blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${type}.pem`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const res = await axios.get(`/ssl/download/${id}/${type}`, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+      });
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${type}.pem`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      Message.error(e?.response?.data?.message ?? e?.message ?? '下载失败');
+    }
   }
 
   async function deleteTask(id: number) {
