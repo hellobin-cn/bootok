@@ -61,6 +61,66 @@ class LocalDriver implements StorageInterface
         }
     }
 
+    public function list(string $prefix = ""): array
+    {
+        $prefix = trim($prefix, '/');
+        $base = $prefix === '' ? $this->root() : $this->absolute($prefix);
+        if (!is_dir($base)) {
+            return [];
+        }
+        $result = [];
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($it as $item) {
+            if ($item->isDir() || $item->getFilename() === '.keep') {
+                continue;
+            }
+            $rel = ltrim(str_replace('\\', '/', substr($item->getPathname(), strlen($base))), '/');
+            $key = trim($prefix . '/' . $rel, '/');
+            $result[$key] = [
+                'size'  => $item->getSize(),
+                'mtime' => $item->getMTime(),
+            ];
+        }
+        ksort($result);
+
+        return $result;
+    }
+
+    public function copy(string $from, string $to): void
+    {
+        $fromAbs = $this->absolute($from);
+        if (!is_file($fromAbs)) {
+            throw new RuntimeException("源对象不存在：{$from}");
+        }
+        $toAbs = $this->absolute($to, true);
+        if (!@copy($fromAbs, $toAbs)) {
+            throw new RuntimeException("复制失败：{$from} → {$to}");
+        }
+    }
+
+    public function deletePrefix(string $prefix): void
+    {
+        $prefix = trim($prefix, '/');
+        if ($prefix === '') {
+            throw new RuntimeException('拒绝删除渠道根前缀');
+        }
+        $base = $this->absolute($prefix);
+        if (!is_dir($base)) {
+            return;
+        }
+        $it = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+        foreach ($it as $item) {
+            $item->isDir() ? @rmdir($item->getPathname()) : @unlink($item->getPathname());
+        }
+        @rmdir($base);
+    }
+
     public function url(string $relativePath): string
     {
         $cdn = trim((string) ($this->config['cdn_domain'] ?? ''));

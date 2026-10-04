@@ -49,7 +49,8 @@ class CosDriver implements StorageInterface
 
     public function put(File $file, string $relativePath): void
     {
-        $this->request('PUT', $relativePath, body: (string) $file->getContent());
+        // Webman UploadFile 继承 SplFileInfo，无 getContent；经真实路径读内容
+        $this->request('PUT', $relativePath, body: (string) file_get_contents($file->getRealPath()));
     }
 
     public function putContent(string $relativePath, string $content): void
@@ -104,6 +105,83 @@ class CosDriver implements StorageInterface
         return $this->scheme() . '://' . $this->host() . '/' . $this->encodePath($relativePath);
     }
 
+    public function list(string $prefix = ""): array
+    {
+        $prefix = trim($prefix, '/');
+        $queryPrefix = $prefix === '' ? '' : $prefix . '/';
+        $result = [];
+        $marker = '';
+        do {
+            $query = ['max-keys' => '1000', 'prefix' => $queryPrefix];
+            if ($marker !== '') {
+                $query['marker'] = $marker;
+            }
+            $body = $this->request('GET', '', query: $query);
+            $xml = simplexml_load_string($body);
+            foreach ($xml->Contents ?? [] as $content) {
+                $key = (string) $content->Key;
+                $result[$key] = [
+                    'size'  => (int) $content->Size,
+                    'mtime' => strtotime((string) $content->LastModified) ?: 0,
+                ];
+            }
+            $truncated = ((string) ($xml->IsTruncated ?? 'false')) === 'true';
+            $marker = (string) ($xml->NextMarker ?? '');
+        } while ($truncated && $marker !== '');
+
+        // 过滤占位对象
+        return array_filter($result, fn (string $key) => !str_ends_with($key, '/.keep'), ARRAY_FILTER_USE_KEY);
+    }
+
+    public function copy(string $from, string $to): void
+    {
+        // COS 复制：PUT 目标 + x-cos-copy-source 头（头须参与签名）
+        $source = '/' . $this->bucket . '/' . str_replace('%2F', '/', rawurlencode(ltrim($from, '/')));
+        $pathname = '/' . $this->encodePath($to);
+        $date = gmdate('D, d M Y H:i:s') . ' GMT';
+        $host = $this->host();
+        $headers = 'content-length=0&content-type=application/octet-stream&date=' . rawurlencode($date)
+            . '&host=' . rawurlencode($host)
+            . '&x-cos-copy-source=' . rawurlencode($source);
+        $keyTime = time() - 60 . ';' . (time() + 600);
+
+        [$signature] = $this->sign('put', $pathname, '', $headers, $keyTime);
+        $authorization = 'q-sign-algorithm=sha1&q-ak=' . $this->secretId
+            . '&q-sign-time=' . $keyTime
+            . '&q-key-time=' . $keyTime
+            . '&q-header-list=content-length;content-type;date;host;x-cos-copy-source'
+            . '&q-url-param-list=&q-signature=' . $signature;
+
+        $ch = curl_init($this->scheme() . '://' . $host . $pathname);
+        curl_setopt_array($ch, [
+            CURLOPT_CUSTOMREQUEST  => 'PUT',
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HTTPHEADER     => [
+                'Authorization: ' . $authorization,
+                'Date: ' . $date,
+                'Host: ' . $host,
+                'Content-Type: application/octet-stream',
+                'Content-Length: 0',
+                'x-cos-copy-source: ' . $source,
+            ],
+            CURLOPT_POSTFIELDS     => '',
+        ]);
+        $body = curl_exec($ch);
+        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        if ($status >= 400 || !is_string($body)) {
+            throw new RuntimeException("COS copy {$from} → {$to} 失败：HTTP {$status} " . mb_substr(strip_tags((string) $body), 0, 300));
+        }
+    }
+
+    public function deletePrefix(string $prefix): void
+    {
+        $prefix = trim($prefix, '/');
+        foreach (array_keys($this->list($prefix)) as $key) {
+            $this->request('DELETE', $key);
+        }
+    }
+
     /**
      * 签名 URL（下载场景：PUT/GET 均可签名）
      */
@@ -153,11 +231,24 @@ class CosDriver implements StorageInterface
      *
      * @return string GET/HEAD 的响应体（其他动词为空串）
      */
-    private function request(string $verb, string $relativePath, string $body = ''): string
+    private function request(string $verb, string $relativePath, string $body = '', array $query = []): string
     {
         $pathname = '/' . $this->encodePath($relativePath);
         $date = gmdate('D, d M Y H:i:s') . ' GMT';
         $host = $this->host();
+
+        // COS 规范：params 键小写排序、值 URL 编码（k=v&...），键名入 q-url-param-list
+        ksort($query);
+        $paramPairs = [];
+        $paramKeys = [];
+        foreach ($query as $k => $v) {
+            $ek = rawurlencode(strtolower((string) $k));
+            $paramPairs[] = $ek . '=' . rawurlencode((string) $v);
+            $paramKeys[] = $ek;
+        }
+        $paramsString = implode('&', $paramPairs);
+        $paramListString = implode(';', $paramKeys);
+
         // COS 规范：HttpString 的 header 值必须 URL 编码（漏编码 content-type 的 / 曾致 SignatureDoesNotMatch）
         $headers = $verb === 'PUT'
             ? 'content-length=' . rawurlencode((string) strlen($body))
@@ -167,12 +258,13 @@ class CosDriver implements StorageInterface
             : 'date=' . rawurlencode($date) . '&host=' . rawurlencode($host);
         $keyTime = time() - 60 . ';' . (time() + 600);
 
-        [$signature, $signKey] = $this->sign(strtolower($verb), $pathname, '', $headers, $keyTime);
+        [$signature] = $this->sign(strtolower($verb), $pathname, $paramsString, $headers, $keyTime);
         $authorization = 'q-sign-algorithm=sha1&q-ak=' . $this->secretId
             . '&q-sign-time=' . $keyTime
             . '&q-key-time=' . $keyTime
             . '&q-header-list=' . ($verb === 'PUT' ? 'content-length;content-type;date;host' : 'date;host')
-            . '&q-url-param-list=&q-signature=' . $signature;
+            . '&q-url-param-list=' . $paramListString
+            . '&q-signature=' . $signature;
 
         $httpHeaders = [
             'Authorization' => $authorization,
@@ -180,18 +272,19 @@ class CosDriver implements StorageInterface
             'Host'          => $host,
         ];
 
+        $queryString = $paramsString === '' ? '' : '?' . $paramsString;
         try {
             if ($verb === 'PUT') {
                 // withBody 自带 Content-Type 头；content-length 由 HTTP 层按 body 计算
                 $resp = Http::withHeaders($httpHeaders)->timeout(30)
-                    ->withBody($body, 'application/octet-stream')->put($this->scheme() . '://' . $host . $pathname);
+                    ->withBody($body, 'application/octet-stream')->put($this->scheme() . '://' . $host . $pathname . $queryString);
             } else {
                 // removeBodyFormat：杜绝 DELETE/GET 被补 body 与隐式 Content-Type（签名头列表之外的隐式头虽不参与 COS 校验，保持请求最小化）
                 $http = Http::withHeaders($httpHeaders)->timeout(30)->removeBodyFormat();
                 $resp = match ($verb) {
-                    'HEAD'   => $http->head($this->scheme() . '://' . $host . $pathname),
-                    'DELETE' => $http->delete($this->scheme() . '://' . $host . $pathname),
-                    default  => $http->get($this->scheme() . '://' . $host . $pathname),
+                    'HEAD'   => $http->head($this->scheme() . '://' . $host . $pathname . $queryString),
+                    'DELETE' => $http->delete($this->scheme() . '://' . $host . $pathname . $queryString),
+                    default  => $http->get($this->scheme() . '://' . $host . $pathname . $queryString),
                 };
             }
         } catch (ConnectionException $e) {

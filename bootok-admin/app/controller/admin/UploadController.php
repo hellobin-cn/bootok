@@ -51,15 +51,30 @@ class UploadController extends Controller
         if (!in_array($extension, self::ALLOWED_EXTENSIONS)) {
             return '[不支持的文件类型]';
         }
-        $relative = 'upload/' . date('Ym') . '/' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
-        // 元信息必须在 move 之前读取（move 后临时文件不存在）
-        $uploadName = (string)$file->getUploadName();
-        $size = (int)$file->getSize();
+
+        // 目标目录：默认按月目录；文件管理器上传时指定渠道与目录（物理路径随目录）
+        $channelId = (int) $request->post('channel_id', 0);
+        $folderId = $request->post('folder_id') !== null ? (int) $request->post('folder_id') : null;
         try {
-            $storage = $this->channels->default();
+            if ($channelId > 0) {
+                $channel = \app\model\StorageChannel::find($channelId);
+                if ($channel === null) {
+                    return '[存储渠道不存在]';
+                }
+                $storage = $this->channels->forChannel($channel);
+                $dirPath = \support\Container::get(\app\service\storage\FolderService::class)->folderPath($channelId, $folderId);
+                $relative = ($dirPath === '' ? '' : $dirPath . '/') . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+            } else {
+                $storage = $this->channels->default();
+                $relative = 'upload/' . date('Ym') . '/' . date('Ymd_His') . '_' . bin2hex(random_bytes(6)) . '.' . $extension;
+            }
+
+            // 元信息必须在 move 之前读取（move 后临时文件不存在）
+            $uploadName = (string)$file->getUploadName();
+            $size = (int)$file->getSize();
             $storage->put($file, $relative);
             $url = $storage->url($relative);
-            $this->recordAttachment($this->channels->defaultChannel()->id, $relative, $uploadName, $size, $extension);
+            $this->recordAttachment($channelId > 0 ? $channelId : $this->channels->defaultChannel()->id, $folderId, $relative, $uploadName, $size, $extension);
             return $url;
         } catch (\Throwable $e) {
             return '[' . $e->getMessage() . ']';
@@ -67,15 +82,16 @@ class UploadController extends Controller
     }
 
     /**
-     * 附件落库（数据资产化：谁传的/何时/多大/存于哪个渠道）；失败不阻断上传
+     * 附件落库（数据资产化：谁传的/何时/多大/存于哪个渠道与目录）；失败不阻断上传
      */
-    private function recordAttachment(int $channelId, string $relative, string $uploadName, int $size, string $extension): void
+    private function recordAttachment(int $channelId, ?int $folderId, string $relative, string $uploadName, int $size, string $extension): void
     {
         try {
             \app\model\Attachment::create([
                 'admin_id'      => $this->adminId,
                 'admin_name'    => $this->adminName,
                 'channel_id'    => $channelId,
+                'folder_id'     => $folderId,
                 'path'          => '/' . $relative,
                 'original_name' => mb_substr($uploadName, 0, 255),
                 'size'          => $size,

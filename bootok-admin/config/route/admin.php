@@ -6,8 +6,10 @@
  */
 
 use app\controller\admin\AdminController;
+use app\controller\admin\AttachmentController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\DnsAccountController;
+use app\controller\admin\FolderController;
 use app\controller\admin\IndexController;
 use app\controller\admin\MailChannelController;
 use app\controller\admin\MailLogController;
@@ -70,6 +72,15 @@ Route::group('', function () {
         Route::post('/mail/template/preview', [MailTemplateController::class, 'preview']);
         Route::post('/mail/template/{id:\d+}/send-test', [MailTemplateController::class, 'sendTest']);
         Route::post('/mail/log/{id:\d+}/resend', [MailLogController::class, 'resend']);
+        // 附件统计（CRUD 走 /auto/attachment）
+        Route::get('/attachment/stats', [AttachmentController::class, 'stats']);
+        // 文件管理器目录（与渠道内真实前缀对应）
+        Route::get('/storage/folders', [FolderController::class, 'index']);
+        Route::post('/storage/folders/scan', [FolderController::class, 'scan']);
+        Route::post('/storage/folders/init', [FolderController::class, 'init']);
+        Route::post('/storage/folders', [FolderController::class, 'create']);
+        Route::put('/storage/folders/{id:\d+}', [FolderController::class, 'rename']);
+        Route::delete('/storage/folders/{id:\d+}', [FolderController::class, 'remove']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
         // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前

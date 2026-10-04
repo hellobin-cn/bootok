@@ -48,7 +48,8 @@ class OssDriver implements StorageInterface
 
     public function put(File $file, string $relativePath): void
     {
-        $this->request('PUT', $relativePath, body: (string) $file->getContent());
+        // Webman UploadFile 继承 SplFileInfo，无 getContent；经真实路径读内容
+        $this->request('PUT', $relativePath, body: (string) file_get_contents($file->getRealPath()));
     }
 
     public function putContent(string $relativePath, string $content): void
@@ -77,6 +78,75 @@ class OssDriver implements StorageInterface
     {
         // 对象不存在时 OSS 返回 204，同样视为删除成功
         $this->request('DELETE', $relativePath);
+    }
+
+    public function list(string $prefix = ""): array
+    {
+        $prefix = trim($prefix, '/');
+        $queryPrefix = $prefix === '' ? '' : $prefix . '/';
+        $result = [];
+        $marker = '';
+        do {
+            $params = ['max-keys' => '1000', 'prefix' => $queryPrefix];
+            if ($marker !== '') {
+                $params['marker'] = $marker;
+            }
+            // prefix/marker/max-keys 不属于 V1 签名的子资源白名单：CanonicalizedResource 为 /bucket/，query 只进 URL 不进签名
+            ksort($params);
+            $urlPairs = [];
+            foreach ($params as $k => $v) {
+                $urlPairs[] = rawurlencode((string) $k) . '=' . rawurlencode((string) $v);
+            }
+            $urlQuery = implode('&', $urlPairs);
+            $date = gmdate('D, d M Y H:i:s') . ' GMT';
+            $stringToSign = "GET\n\n\n{$date}\n/{$this->bucket}/";
+            $signature = base64_encode(hash_hmac('sha1', $stringToSign, $this->accessKeySecret, true));
+
+            $ch = curl_init($this->scheme() . '://' . $this->bucket . '.' . $this->endpoint . '/?' . $urlQuery);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 30,
+                CURLOPT_HTTPHEADER     => [
+                    'Date: ' . $date,
+                    'Authorization: OSS ' . $this->accessKeyId . ':' . $signature,
+                ],
+            ]);
+            $body = curl_exec($ch);
+            $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $error = curl_error($ch);
+
+            if ($status >= 400 || !is_string($body)) {
+                throw new RuntimeException("OSS List 失败：HTTP {$status} " . mb_substr(strip_tags((string) $body) . ' ' . $error, 0, 1500));
+            }
+            $xml = simplexml_load_string($body);
+            foreach ($xml->Contents ?? [] as $content) {
+                $key = (string) $content->Key;
+                $result[$key] = [
+                    'size'  => (int) $content->Size,
+                    'mtime' => strtotime((string) $content->LastModified) ?: 0,
+                ];
+            }
+            $truncated = ((string) ($xml->IsTruncated ?? 'false')) === 'true';
+            $marker = (string) ($xml->NextMarker ?? '');
+        } while ($truncated && $marker !== '');
+
+        // 过滤占位对象
+        return array_filter($result, fn (string $key) => !str_ends_with($key, '/.keep'), ARRAY_FILTER_USE_KEY);
+    }
+
+    public function copy(string $from, string $to): void
+    {
+        $source = '/' . $this->bucket . '/' . str_replace('%2F', '/', rawurlencode(ltrim($from, '/')));
+        // x-oss-copy-source 的 key 需 URL 编码（保留斜杠），且该头必须参与 V1 签名
+        $this->request('PUT', $to, body: '', ossHeaders: ['x-oss-copy-source' => $source]);
+    }
+
+    public function deletePrefix(string $prefix): void
+    {
+        $prefix = trim($prefix, '/');
+        foreach (array_keys($this->list($prefix)) as $key) {
+            $this->request('DELETE', $key);
+        }
     }
 
     public function url(string $relativePath): string
@@ -137,18 +207,34 @@ class OssDriver implements StorageInterface
     /**
      * 签名请求并执行（经 bootok/http HTTP 层）
      *
+     * @param array<string, string> $ossHeaders 参与 V1 签名 CanonicalizedOSSHeaders 的 x-oss-* 头（如 copy 的 x-oss-copy-source）
      * @return string GET/HEAD 的响应体（其他动词为空串）
      */
-    private function request(string $verb, string $relativePath, string $body = ''): string
+    private function request(string $verb, string $relativePath, string $body = '', array $ossHeaders = []): string
     {
+        // 签名用原始 key（未编码）；URL 用编码后 path（中文 key 场景与 list 前缀过滤保持同一形态）
         $path = '/' . ltrim($relativePath, '/');
+        $encodedPath = implode('/', array_map('rawurlencode', explode('/', $path)));
         $contentMd5 = $body !== '' && $verb === 'PUT' ? base64_encode(md5($body, true)) : '';
         $date = gmdate('D, d M Y H:i:s') . ' GMT';
         $contentType = $verb === 'PUT' ? 'application/octet-stream' : '';
+
+        // CanonicalizedOSSHeaders：x-oss-* 头名小写排序后逐行 name:value\n，参与签名计算
+        $canonical = [];
+        foreach ($ossHeaders as $name => $value) {
+            $canonical[strtolower((string) $name)] = (string) $value;
+        }
+        ksort($canonical);
+        $canonicalOssHeaders = '';
+        foreach ($canonical as $name => $value) {
+            $canonicalOssHeaders .= $name . ':' . $value . "\n";
+        }
+
         $stringToSign = $verb . "\n"
             . $contentMd5 . "\n"
             . $contentType . "\n"
             . $date . "\n"
+            . $canonicalOssHeaders
             . "/{$this->bucket}{$path}";
         $signature = base64_encode(hash_hmac('sha1', $stringToSign, $this->accessKeySecret, true));
 
@@ -156,6 +242,9 @@ class OssDriver implements StorageInterface
             'Date'         => $date,
             'Authorization' => 'OSS ' . $this->accessKeyId . ':' . $signature,
         ];
+        foreach ($canonical as $name => $value) {
+            $headers[$name] = $value;
+        }
         if ($verb === 'PUT') {
             $headers['Content-MD5'] = $contentMd5;
         }
@@ -164,14 +253,14 @@ class OssDriver implements StorageInterface
             if ($verb === 'PUT') {
                 // withBody 自带 Content-Type 头（参与签名，勿在 withHeaders 重复声明）
                 $resp = Http::withHeaders($headers)->timeout(30)
-                    ->withBody($body, $contentType)->put($this->baseUrl($path));
+                    ->withBody($body, $contentType)->put($this->baseUrl($encodedPath));
             } else {
                 // removeBodyFormat：杜绝 DELETE/GET 被补 body 与隐式 Content-Type（参与签名计算）
                 $http = Http::withHeaders($headers)->timeout(30)->removeBodyFormat();
                 $resp = match ($verb) {
-                    'HEAD'   => $http->head($this->baseUrl($path)),
-                    'DELETE' => $http->delete($this->baseUrl($path)),
-                    default  => $http->get($this->baseUrl($path)),
+                    'HEAD'   => $http->head($this->baseUrl($encodedPath)),
+                    'DELETE' => $http->delete($this->baseUrl($encodedPath)),
+                    default  => $http->get($this->baseUrl($encodedPath)),
                 };
             }
         } catch (ConnectionException $e) {

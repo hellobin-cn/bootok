@@ -55,4 +55,22 @@ interface StorageInterface
      * @return array{ok: bool, message: string}
      */
     public function test(): array;
+
+    /**
+     * 列举前缀下全部对象（不含目录占位 .keep），按路径升序
+     *
+     * @param string $prefix 相对路径前缀（空 = 渠道根），如 "upload/202610"
+     * @return array<string, array{size: int, mtime: int}> key 为相对路径
+     */
+    public function list(string $prefix = ""): array;
+
+    /**
+     * 复制对象（驱动按各自协议实现；源不存在抛异常）
+     */
+    public function copy(string $from, string $to): void;
+
+    /**
+     * 递归删除前缀下全部对象（含占位；不存在时静默成功）
+     */
+    public function deletePrefix(string $prefix): void;
 }

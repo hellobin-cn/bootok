@@ -14,7 +14,7 @@ use app\service\AttachmentService;
  * @property int    $size
  * @property string $ext
  */
-#[AutoResource(name: '附件', only: ['getRows', 'getItem'], read: 'attachment.rows')]
+#[AutoResource(name: '附件', only: ['getRows', 'getItem', 'edit', 'delete'], read: 'attachment.rows')]
 class Attachment extends Model
 {
     protected $table = 'sys_attachment';
@@ -30,5 +30,14 @@ class Attachment extends Model
     public function getUrlAttribute(): string
     {
         return AttachmentService::urlFor($this);
+    }
+    public function afterDeleted(): void
+    {
+        // 行删除时同步清理存储对象（对象不存在由驱动静默处理；渠道不可达不阻断删除流程）
+        try {
+            \support\Container::get(\app\service\AttachmentService::class)->deleteObject($this);
+        } catch (\Throwable $e) {
+            \support\Log::warning('attachment.object_delete_failed', ['id' => $this->id, 'error' => $e->getMessage()]);
+        }
     }
 }
