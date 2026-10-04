@@ -163,7 +163,7 @@
       :ok-loading="issuing"
       ok-text="开始签发（后台执行）"
     >
-      <a-form v-if="!issueTaskId" :model="issueForm" auto-label-width>
+      <a-form v-if="!issueTaskId" :model="issueForm" :label-width="110">
         <a-form-item label="域名" required help="多个域名用逗号或换行分隔，支持通配符（如 *.haoduoya.cc）">
           <a-textarea
             v-model="issueForm.domains"
@@ -213,7 +213,7 @@
       @ok="submitDns"
       :ok-loading="dnsSaving"
     >
-      <a-form :model="dnsForm" auto-label-width>
+      <a-form :model="dnsForm" :label-width="130">
         <a-form-item label="名称" required>
           <a-input v-model="dnsForm.title" placeholder="如：阿里云-主账号" />
         </a-form-item>
@@ -251,7 +251,7 @@
       @ok="submitDeploy"
       :ok-loading="deploySaving"
     >
-      <a-form :model="deployForm" auto-label-width>
+      <a-form :model="deployForm" :label-width="110">
         <a-form-item label="名称" required>
           <a-input v-model="deployForm.title" placeholder="如：web-01 nginx" />
         </a-form-item>
@@ -263,16 +263,20 @@
             allow-search
           />
         </a-form-item>
-        <a-form-item label="部署方式" required help="证书推送到哪、如何生效">
-          <a-radio-group v-model="deployForm.mode" :disabled="!!deployForm.id">
-            <a-radio value="local">本机</a-radio>
-            <a-radio value="remote">远程 SSH</a-radio>
-            <a-radio value="aliyun">阿里云 CDN</a-radio>
-            <a-radio value="tencent">腾讯云 CDN</a-radio>
-          </a-radio-group>
+        <a-form-item label="部署通道" required help="SSH：落盘并 reload；云 CDN：证书直推 CDN 域名 HTTPS 配置">
+          <a-select v-model="deployForm.channel" :disabled="!!deployForm.id" @change="onChannelChange">
+            <a-option value="ssh">SSH 部署（本机 / 远程主机）</a-option>
+            <a-option value="cdn">云 CDN（HTTPS 证书直推）</a-option>
+          </a-select>
         </a-form-item>
 
-        <template v-if="deployForm.mode === 'aliyun' || deployForm.mode === 'tencent'">
+        <template v-if="deployForm.channel === 'cdn'">
+          <a-form-item label="CDN 服务商" required>
+            <a-select v-model="deployForm.mode" :disabled="!!deployForm.id">
+              <a-option value="aliyun">阿里云 CDN</a-option>
+              <a-option value="tencent">腾讯云 CDN</a-option>
+            </a-select>
+          </a-form-item>
           <a-form-item label="加速域名" required help="已接入 CDN 的域名，HTTPS 证书将配置到它上面">
             <a-input v-model="deployForm.config.cdnDomain" placeholder="cdn.example.com" />
           </a-form-item>
@@ -295,6 +299,12 @@
         </template>
 
         <template v-else>
+          <a-form-item label="部署模式" required help="本机：直接落盘执行；远程：SSH 免密登录">
+            <a-radio-group v-model="deployForm.mode">
+              <a-radio value="local">本机</a-radio>
+              <a-radio value="remote">远程 SSH</a-radio>
+            </a-radio-group>
+          </a-form-item>
           <template v-if="deployForm.mode === 'remote'">
             <a-form-item label="主机" required>
               <a-input v-model="deployForm.config.host" placeholder="IP 或主机名" />
@@ -556,6 +566,17 @@
       deploys.value = res.data?.data ?? [];
     } finally {
       deployLoading.value = false;
+    }
+  }
+
+  // 通道切换时把 mode 归位到该通道的合法值（下拉显示残留 local/aliyun 会误导）
+  function onChannelChange(channel: string | number | boolean | Record<string, any> | (string | number | boolean | Record<string, any>)[]) {
+    const c = String(channel);
+    if (c === 'cdn' && !['aliyun', 'tencent'].includes(deployForm.value.mode)) {
+      deployForm.value.mode = 'aliyun';
+    }
+    if (c === 'ssh' && !['local', 'remote'].includes(deployForm.value.mode)) {
+      deployForm.value.mode = 'local';
     }
   }
 

@@ -111,7 +111,7 @@
       @before-ok="handleChannelOk"
       :ok-loading="channelSaving"
     >
-      <a-form :model="channelForm" auto-label-width>
+      <a-form :model="channelForm" :label-width="130">
         <a-form-item label="名称" required>
           <a-input v-model="channelForm.title" placeholder="如：本地存储 / 阿里云OSS" />
         </a-form-item>
