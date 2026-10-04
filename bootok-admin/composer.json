@@ -27,8 +27,8 @@
         "source": "https://gitee.com/hellobin-cn/bootok"
     },
     "require": {
-        "bootok/acme": "@dev",
-        "bootok/http": "@dev",
+        "bootok/acme": "^1.0",
+        "bootok/http": "^1.0",
         "firebase/php-jwt": "^7.1",
         "illuminate/events": "^12.64",
         "illuminate/pagination": "^12.64",
@@ -79,21 +79,5 @@
     "prefer-stable": true,
     "require-dev": {
         "phpunit/phpunit": "^11"
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "../http",
-            "options": {
-                "symlink": true
-            }
-        },
-        {
-            "type": "path",
-            "url": "../acme",
-            "options": {
-                "symlink": true
-            }
-        }
-    ]
+    }
 }

@@ -4,15 +4,15 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "80aca402e6b3550cebdaa848a5a70e3d",
+    "content-hash": "1ee01b787534c3646b34ac5ff75c6f5a",
     "packages": [
         {
             "name": "bootok/acme",
-            "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../acme",
-                "reference": "ef537baee703523b73fa6b98f580be6245f033f5"
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://gitee.com/hellobin-cn/bootok-acme.git",
+                "reference": "7725e048366533227d8291241b242ddc29b85fed"
             },
             "require": {
                 "ext-openssl": "*",
@@ -24,11 +24,7 @@
                     "BootOk\\Acme\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BootOk\\Acme\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -41,7 +37,7 @@
             ],
             "description": "纯 PHP 实现的 ACME v2 (RFC 8555) 客户端，DNS-01 验证，PHP 8.2+，无重依赖",
             "keywords": [
-                "acme",
+                "ACME",
                 "certificate",
                 "dns-01",
                 "letsencrypt",
@@ -49,18 +45,15 @@
                 "tls",
                 "wildcard"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "time": "2026-10-04T14:30:20+00:00"
         },
         {
             "name": "bootok/http",
-            "version": "dev-master",
-            "dist": {
-                "type": "path",
-                "url": "../http",
-                "reference": "34fb370c2b0b5ab13fec84f3b958c5c83cd94d0e"
+            "version": "v1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://gitee.com/hellobin-cn/bootok-http.git",
+                "reference": "65c8cdd0b2dfcca40ba28d43392d260054a5264c"
             },
             "require": {
                 "php": ">=8.2",
@@ -76,11 +69,7 @@
                     "BootOk\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "BootOk\\Tests\\": "tests/"
-                }
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -93,16 +82,13 @@
             ],
             "description": "基于 Symfony HttpClient 的 HTTP 客户端，完全兼容 yzh52521/easyhttp 门面 API（高版本 PHP 替代方案）",
             "keywords": [
+                "EasyHttp",
                 "client",
-                "easyhttp",
                 "http",
                 "symfony",
                 "webman"
             ],
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "time": "2026-10-04T14:30:18+00:00"
         },
         {
             "name": "brick/math",
@@ -9453,10 +9439,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "bootok/acme": 20,
-        "bootok/http": 20
-    },
+    "stability-flags": {},
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
