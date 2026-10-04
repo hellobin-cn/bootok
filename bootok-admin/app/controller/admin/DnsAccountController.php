@@ -25,7 +25,17 @@ class DnsAccountController extends Controller
         try {
             $zones = $account->provider()->listZones();
         } catch (\Throwable $e) {
-            return $this->error('凭据无效：' . $e->getMessage());
+            $message = $e->getMessage();
+            // 受限策略：认证已通过（UnauthorizedOperation 发生在鉴权阶段），不影响实际签发——
+            // 签发时按需探测域名归属，仅需 DescribeRecordList 等记录级权限
+            if (str_contains($message, 'UnauthorizedOperation') || str_contains($message, 'AccessDenied')) {
+                return $this->success([
+                    'zones'   => [],
+                    'message' => '密钥认证通过（当前为受限策略，无法列出域名；签发时会按需探测域名归属，不影响使用）',
+                ]);
+            }
+
+            return $this->error('凭据无效：' . $message);
         }
         if ($zones === []) {
             return $this->error('凭据认证通过，但账号下没有解析域名');
