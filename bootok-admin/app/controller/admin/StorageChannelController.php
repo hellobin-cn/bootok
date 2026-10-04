@@ -31,4 +31,25 @@ class StorageChannelController extends Controller
 
         return $result['ok'] ? $this->success($result) : $this->error($result['message']);
     }
+
+    /**
+     * 测试「未保存」的表单配置：校验 + 探针，不落库
+     * POST /storage/channel/test {type, config}
+     */
+    public function testConfig(Request $request): Response
+    {
+        $type = (string) $request->post('type', '');
+        $config = (array) $request->post('config', []);
+        if ($message = StorageChannel::configError($type, $config)) {
+            return $this->error($message);
+        }
+        $channel = new StorageChannel(['type' => $type, 'config' => $config]);
+        try {
+            $result = \app\storage\ChannelFactory::build($channel)->test();
+        } catch (\Throwable $e) {
+            return $this->error('测试失败：' . $e->getMessage());
+        }
+
+        return $result['ok'] ? $this->success($result) : $this->error($result['message']);
+    }
 }

@@ -59,6 +59,7 @@ Route::group('', function () {
         // DNS 凭据连通性测试（CRUD 走 /auto/dns-account）
         Route::post('/ssl/dns-account/{id:\d+}/test', [DnsAccountController::class, 'test']);
         // 存储渠道配置自检（CRUD 走 /auto/storage-channel）
+        Route::post('/storage/channel/test', [StorageChannelController::class, 'testConfig']);
         Route::post('/storage/channel/{id:\d+}/test', [StorageChannelController::class, 'test']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行

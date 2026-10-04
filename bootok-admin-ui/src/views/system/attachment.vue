@@ -170,6 +170,10 @@
             <a-radio value="http">HTTP</a-radio>
           </a-radio-group>
         </a-form-item>
+
+        <a-form-item label=" " help="写读删一个探针对象，验证配置与权限（无需先保存）">
+          <a-button :loading="channelTestRunning" @click="testChannelConfig">测试当前配置</a-button>
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -332,6 +336,30 @@
       Message.error(e?.message ?? '测试失败');
     } finally {
       channelTestingId.value = null;
+    }
+  }
+
+  // 弹窗内测试「未保存」的表单配置
+  const channelTestRunning = ref(false);
+
+  async function testChannelConfig() {
+    const f = channelForm.value;
+    channelTestRunning.value = true;
+    try {
+      const payload: any = { type: f.type, config: f.config };
+      field.hump2underline(payload);
+      const res: any = await axios.post('/storage/channel/test', payload, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 30000,
+      });
+      if (res.code === '0') {
+        Message.success(res.data?.message || '配置有效');
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '测试失败');
+    } finally {
+      channelTestRunning.value = false;
     }
   }
 

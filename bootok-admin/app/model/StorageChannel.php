@@ -37,10 +37,25 @@ class StorageChannel extends Model
     {
         // cast 属性不能间接修改，整组取出改完再赋回
         $config = is_array($this->config) ? $this->config : [];
-        if (!array_key_exists($this->type ?? '', self::types())) {
+        if ($message = self::configError((string) ($this->type ?? ''), $config)) {
+            return $message;
+        }
+        $this->config = $config;
+
+        return '';
+    }
+
+    /**
+     * 渠道配置校验（保存与「测试当前配置」共用；返回错误消息，空串为通过）
+     *
+     * @param array<string, mixed> $config
+     */
+    public static function configError(string $type, array $config): string
+    {
+        if (!array_key_exists($type, self::types())) {
             return '存储类型不支持';
         }
-        $required = match ($this->type) {
+        $required = match ($type) {
             'oss'   => ['bucket', 'endpoint', 'access_key_id', 'access_key_secret'],
             'cos'   => ['bucket', 'region', 'secret_id', 'secret_key'],
             default => [],
@@ -53,7 +68,6 @@ class StorageChannel extends Model
         if (($config['cdn_domain'] ?? '') !== '' && !in_array($config['scheme'] ?? 'https', ['http', 'https'], true)) {
             return 'CDN 协议仅支持 http/https';
         }
-        $this->config = $config;
 
         return '';
     }
