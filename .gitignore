@@ -10,7 +10,7 @@ runtime/
 **/public/upload/
 .env
 .env.*
-!.env.example
+!bootok-admin/.env.template
 *.log
 logs/
 .phpunit.result.cache
