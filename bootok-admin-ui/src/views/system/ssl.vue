@@ -163,7 +163,7 @@
       :ok-loading="issuing"
       ok-text="开始签发（后台执行）"
     >
-      <a-form v-if="!issueTaskId" :model="issueForm" :label-width="110">
+      <a-form v-if="!issueTaskId" :model="issueForm" class="form-issue">
         <a-form-item label="域名" required help="多个域名用逗号或换行分隔，支持通配符（如 *.haoduoya.cc）">
           <a-textarea
             v-model="issueForm.domains"
@@ -213,7 +213,7 @@
       @ok="submitDns"
       :ok-loading="dnsSaving"
     >
-      <a-form :model="dnsForm" :label-width="130">
+      <a-form :model="dnsForm" class="form-dns">
         <a-form-item label="名称" required>
           <a-input v-model="dnsForm.title" placeholder="如：阿里云-主账号" />
         </a-form-item>
@@ -251,7 +251,7 @@
       @ok="submitDeploy"
       :ok-loading="deploySaving"
     >
-      <a-form :model="deployForm" :label-width="110">
+      <a-form :model="deployForm" class="form-deploy">
         <a-form-item label="名称" required>
           <a-input v-model="deployForm.title" placeholder="如：web-01 nginx" />
         </a-form-item>
@@ -819,5 +819,27 @@
   }
   .ssl-issue-log-err {
     color: rgb(var(--red-6));
+  }
+</style>
+
+<style scoped>
+  /* label 固定宽度（Arco 栅格 col 的 flex-basis 需整组覆盖，含 wrapper 避免 blank 列） */
+  .form-issue :deep(.arco-form-item-label-col),
+  .form-dns :deep(.arco-form-item-label-col),
+  .form-deploy :deep(.arco-form-item-label-col) {
+    flex: 0 0 auto;
+    width: 170px;
+    max-width: 170px;
+  }
+  .form-issue :deep(.arco-form-item-wrapper-col),
+  .form-dns :deep(.arco-form-item-wrapper-col),
+  .form-deploy :deep(.arco-form-item-wrapper-col) {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+  }
+  .form-issue :deep(.arco-form-item-label-col),
+  .form-issue :deep(.arco-form-item-wrapper-col) {
+    flex-basis: auto;
   }
 </style>

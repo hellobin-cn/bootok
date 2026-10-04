@@ -111,7 +111,7 @@
       @before-ok="handleChannelOk"
       :ok-loading="channelSaving"
     >
-      <a-form :model="channelForm" :label-width="130">
+      <a-form :model="channelForm" class="form-channel">
         <a-form-item label="名称" required>
           <a-input v-model="channelForm.title" placeholder="如：本地存储 / 阿里云OSS" />
         </a-form-item>
@@ -367,3 +367,16 @@
 </script>
 
 <style scoped></style>
+
+<style scoped>
+  .form-channel :deep(.arco-form-item-label-col) {
+    flex: 0 0 130px;
+    width: 130px;
+    max-width: 130px;
+  }
+  .form-channel :deep(.arco-form-item-wrapper-col) {
+    flex: 1 1 auto;
+    width: auto;
+    max-width: 100%;
+  }
+</style>
