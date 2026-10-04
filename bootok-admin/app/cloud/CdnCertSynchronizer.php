@@ -40,13 +40,16 @@ class CdnCertSynchronizer
             return;
         }
         if ($provider === 'tencent') {
-            self::client($config)->call('UpdateDomainConfig', [
+            // 结构与官方 SDK Https/ServerCert 模型对齐（PascalCase 键）
+            self::clientTencent($config)->call('UpdateDomainConfig', [
                 'Domain' => $cdnDomain,
                 'Https'  => [
-                    'Setting'               => 'on',
-                    'ServerCertificateMode' => 1,
-                    'ServerCertificate'     => $fullchain,
-                    'ServerPrivateKey'      => $privkey,
+                    'Switch'   => 'on',
+                    'CertInfo' => [
+                        'CertName'    => $certName,
+                        'Certificate' => $fullchain,
+                        'PrivateKey'  => $privkey,
+                    ],
                 ],
             ]);
 
@@ -82,10 +85,9 @@ class CdnCertSynchronizer
                 return ['ok' => true, 'message' => "阿里云凭据有效，域名 {$cdnDomain} 存在且可管理"];
             }
             if ($provider === 'tencent') {
-                $filter = $cdnDomain !== '' ? ['Filters' => [['name' => 'domain', 'value' => [$cdnDomain]]]] : [];
-                $data = self::clientTencent($config)->call('DescribeDomainsConfig', $filter + ['Offset' => 0, 'Limit' => 5]);
-                $found = count($data['Domains'] ?? []) > 0;
-                $message = $cdnDomain === ''
+                $filter = $cdnDomain !== '' ? ['Filters' => [['Name' => 'domain', 'Value' => [$cdnDomain]]]] : [];
+                $data = self::clientTencent($config)->call('DescribeDomains', $filter + ['Offset' => 0, 'Limit' => 5]);
+                $found = count($data['Domains'] ?? []) > 0;                $message = $cdnDomain === ''
                     ? '腾讯云凭据有效（账号下加速域名 ' . ($data['TotalCount'] ?? 0) . ' 个）'
                     : ($found ? "腾讯云凭据有效，域名 {$cdnDomain} 存在且可管理" : "腾讯云凭据有效，但账号下未找到域名 {$cdnDomain}");
 
@@ -119,6 +121,7 @@ class CdnCertSynchronizer
             throw new RuntimeException('腾讯云 CDN 需要 secret_id / secret_key 凭据');
         }
 
-        return new TencentClient('cdn.tencentcloudapi.com', 'cdn', '2018-06-01', (string) $config['secret_id'], (string) $config['secret_key']);
+        // CDN API 版本为 2018-06-06（不存在 2018-06-01；版本错误时网关会走坏解析路径报莫名的 Url 编码错误）
+        return new TencentClient('cdn.tencentcloudapi.com', 'cdn', '2018-06-06', (string) $config['secret_id'], (string) $config['secret_key']);
     }
 }

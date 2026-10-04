@@ -7,15 +7,16 @@ use RuntimeException;
 /**
  * 腾讯云开放 API 3.0 通用客户端（TC3-HMAC-SHA256 签名，纯 PHP 无 SDK）
  *
- * 适用 cdn.tencentcloudapi.com / ssl.tencentcloudapi.com 等一切 API 3.0 端点；
- * 签名链与 DNSPod 产品一致（SignKey → HttpString → StringToSign → Signature）。
+ * 适用 cdn.tencentcloudapi.com / ssl.tencentcloudapi.com 等一切 API 3.0 端点。
+ * 请求形态与官方 SDK 对齐：Content-Type 为纯 application/json（不带 charset），
+ * 公共参数 X-TC-* 走请求头，Authorization 承载网关鉴权。
  */
 class TencentClient
 {
     public function __construct(
         private readonly string $host,          // 如 cdn.tencentcloudapi.com
         private readonly string $service,       // 如 cdn
-        private readonly string $version,       // 如 2018-06-01
+        private readonly string $version,       // 如 2018-06-06
         private readonly string $secretId,
         private readonly string $secretKey,
     ) {
@@ -29,14 +30,15 @@ class TencentClient
      */
     public function call(string $action, array $params = []): array
     {
-        $payload = json_encode($params, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        $contentType = 'application/json';
         $timestamp = time();
         $date = gmdate('Y-m-d', $timestamp);
+        $payload = json_encode($params, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
 
         $canonicalRequest = 'POST'
             . "\n/\n"
             . "\n"
-            . 'content-type:application/json; charset=utf-8' . "\n"
+            . 'content-type:' . $contentType . "\n"
             . 'host:' . $this->host . "\n"
             . "\n"
             . 'content-type;host'
@@ -54,12 +56,16 @@ class TencentClient
             . 'Signature=' . $signature;
 
         try {
-            $resp = \BootOk\Http::withHeaders([
-                'X-TC-Action'    => $action,
-                'X-TC-Version'   => $this->version,
-                'X-TC-Timestamp' => (string) $timestamp,
+            // 固定 HTTP/1.1 与禁用压缩协商，保持与官方 SDK 相同的请求形态
+            $resp = \BootOk\Http::withOptions(['version' => '1.1'])->withHeaders([
+                'X-TC-Action'        => $action,
+                'X-TC-Version'       => $this->version,
+                'X-TC-Timestamp'     => (string) $timestamp,
+                'X-TC-RequestClient' => 'BootOk',
+                'User-Agent'         => 'TencentCloud SDK PHP',
+                'Authorization'      => $authorization,
             ])->timeout(30)
-                ->withBody((string) $payload, 'application/json; charset=utf-8')
+                ->withBody($payload, $contentType)
                 ->post('https://' . $this->host . '/');
         } catch (\Throwable $e) {
             throw new RuntimeException("腾讯云 {$action} 传输失败：" . $e->getMessage());
