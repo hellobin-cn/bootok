@@ -155,7 +155,7 @@
     <a-modal
       v-model:visible="issueVisible"
       :title="issueTaskId ? '签发进度' : '签发 SSL 证书'"
-      :width="issueTaskId ? 620 : 560"
+      :width="issueTaskId ? 700 : 560"
       :mask-closable="false"
       :footer="!issueTaskId"
       @before-ok="handleIssueOk"
@@ -186,7 +186,7 @@
         </a-form-item>
       </a-form>
       <div v-else>
-        <a-steps :current="stepIndex" :status="stepsStatus" size="small">
+        <a-steps :current="stepIndex" :status="stepsStatus" size="small" label-placement="vertical" class="issue-steps">
           <a-step v-for="s in ISSUE_STEPS" :key="s" :title="s" />
         </a-steps>
         <div class="ssl-issue-log">
@@ -841,5 +841,22 @@
   .form-issue :deep(.arco-form-item-label-col),
   .form-issue :deep(.arco-form-item-wrapper-col) {
     flex-basis: auto;
+  }
+</style>
+
+<style scoped>
+  /* 签进步度步骤条：文字竖排后进一步缩小，避免横向截断 */
+  .issue-steps :deep(.arco-steps-item-title) {
+    font-size: 12px;
+  }
+  .issue-steps :deep(.arco-steps) {
+    max-width: 100%;
+  }
+  .issue-steps :deep(.arco-steps-item) {
+    min-width: 0;
+    margin-right: 0;
+  }
+  .issue-steps :deep(.arco-steps-item:not(:last-child)) .arco-steps-item-tail {
+    margin-right: 6px;
   }
 </style>
