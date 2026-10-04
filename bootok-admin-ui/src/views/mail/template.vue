@@ -60,7 +60,9 @@
               <a-input v-model="item.label" placeholder="说明，如 验证码" style="width: 240px" />
               <a-button size="mini" status="danger" @click="form.variables.splice(i, 1)">删除</a-button>
             </a-space>
-            <a-button size="mini" type="dashed" @click="form.variables.push({ name: '', label: '' })">添加变量</a-button>
+            <div class="var-add">
+              <a-button size="mini" type="dashed" @click="form.variables.push({ name: '', label: '' })">添加变量</a-button>
+            </div>
           </div>
         </a-form-item>
         <a-form-item label="用途说明">
@@ -242,7 +244,11 @@
     width: 100%;
   }
   .var-row {
+    display: flex;
     margin-bottom: 8px;
+  }
+  .var-add {
+    margin-top: 2px;
   }
   .body-item :deep(.arco-textarea) {
     font-family: Consolas, Menlo, monospace;

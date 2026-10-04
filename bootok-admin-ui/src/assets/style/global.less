@@ -97,3 +97,9 @@ body {
     }
   }
 }
+
+// Arco 默认把带 help/校验信息的表单项下边距清零（.arco-form-item-has-help { margin-bottom: 0 }），
+// 导致有帮助信息的行与下一行挤在一起；恢复统一 20px 节奏
+.arco-form-item.arco-form-item-has-help {
+  margin-bottom: 20px;
+}
