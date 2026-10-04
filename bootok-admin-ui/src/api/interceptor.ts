@@ -17,6 +17,8 @@ export interface HttpResponse<T = unknown> {
 if (import.meta.env.VITE_API_BASE_URL) {
   axios.defaults.baseURL = import.meta.env.VITE_API_BASE_URL;
 }
+// 全局超时兜底：请求永不 pending 导致按钮 loading 卡死（各调用方可按需覆盖更长值）
+axios.defaults.timeout = 30000;
 
 axios.interceptors.request.use(
   (config: AxiosRequestConfig) => {
