@@ -5,6 +5,7 @@ namespace app\controller\admin;
 use app\controller\Controller;
 use app\model\SslTask;
 use app\service\ConfigService;
+use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
 use BootOk\Acme\Dns\AliyunProvider;
@@ -90,11 +91,15 @@ class SslTaskController extends Controller
             $row->expires_at = isset($parsed['validTo_time_t']) ? date('Y-m-d H:i:s', $parsed['validTo_time_t']) : null;
             $row->save();
 
+            // 签发成功即分发部署：目标失败不影响签发结果（错误记录在目标行）
+            $deploy = SslDeployService::dispatchForTask($row);
+
             return $this->success([
                 'id'         => $row->id,
                 'status'     => 'issued',
                 'domains'    => $domains,
                 'expires_at' => $row->expires_at,
+                'deploy'     => $deploy,
             ]);
         } catch (\Throwable $e) {
             $row->status = 'failed';

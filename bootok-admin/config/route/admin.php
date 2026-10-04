@@ -9,6 +9,7 @@ use app\controller\admin\AdminController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\IndexController;
 use app\controller\admin\ResourceController;
+use app\controller\admin\SslDeployController;
 use app\controller\admin\SslTaskController;
 use app\controller\admin\TaskController;
 use app\controller\admin\UploadController;
@@ -50,6 +51,9 @@ Route::group('', function () {
         Route::post('/ssl/order', [SslTaskController::class, 'order']);
         // 证书产物下载（type: fullchain / privkey）
         Route::get('/ssl/download/{id:\d+}/{type:[a-z]+}', [SslTaskController::class, 'download']);
+        // SSL 部署目标：立即部署 / 连通性测试（CRUD 走 /auto/ssl-deploy）
+        Route::post('/ssl/deploy/{id:\d+}/run', [SslDeployController::class, 'run']);
+        Route::post('/ssl/deploy/{id:\d+}/test', [SslDeployController::class, 'test']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
         // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前

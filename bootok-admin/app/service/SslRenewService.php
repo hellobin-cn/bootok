@@ -3,6 +3,7 @@
 namespace app\service;
 
 use app\model\SslTask;
+use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
 use BootOk\Acme\Dns\AliyunProvider;
@@ -70,6 +71,8 @@ class SslRenewService
                 $row->expires_at = isset($parsed['validTo_time_t']) ? date('Y-m-d H:i:s', $parsed['validTo_time_t']) : null;
                 $row->save();
                 $renewed++;
+                // 续期成功后同样分发部署（逐目标容错，内部不抛出）
+                SslDeployService::dispatchForTask($row);
                 Log::channel('json')->info('ssl.renewed', ['id' => $row->id, 'expires_at' => $row->expires_at]);
             } catch (\Throwable $e) {
                 $failed++;

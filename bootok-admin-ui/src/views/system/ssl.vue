@@ -55,6 +55,67 @@
       </a-table>
     </a-card>
 
+    <!-- 部署目标：签发/续期成功后自动投递证书并触发 reload -->
+    <a-card :bordered="false" title="部署目标" style="margin-top: 10px">
+      <template #extra>
+        <a-button type="primary" @click="openDeploy()" v-permission="'ssl-deploy.create'">
+          <template #icon><icon-plus /></template>
+          新建目标
+        </a-button>
+      </template>
+
+      <a-table :data="deploys" :loading="deployLoading" :pagination="false">
+        <template #columns>
+          <a-table-column title="ID" data-index="id" :width="70" />
+          <a-table-column title="名称" data-index="title" :width="150" />
+          <a-table-column title="绑定域名" data-index="domain" :width="180" />
+          <a-table-column title="模式" :width="110" align="center">
+            <template #cell="{ record }">
+              <a-tag v-if="record.mode === 'remote'" color="purple">远程 SSH</a-tag>
+              <a-tag v-else color="green">本机</a-tag>
+            </template>
+          </a-table-column>
+          <a-table-column title="最近部署" :width="120" align="center">
+            <template #cell="{ record }">
+              <a-tag v-if="record.lastStatus === 'success'" color="green">成功</a-tag>
+              <a-tooltip v-else-if="record.lastStatus === 'failed'" :content="record.lastError">
+                <a-tag color="red">失败</a-tag>
+              </a-tooltip>
+              <a-tag v-else color="gray">从未</a-tag>
+            </template>
+          </a-table-column>
+          <a-table-column title="部署时间" :width="170">
+            <template #cell="{ record }">{{ record.lastDeployedAt ?? '-' }}</template>
+          </a-table-column>
+          <a-table-column title="操作" :width="340">
+            <template #cell="{ record }">
+              <a-space>
+                <a-switch
+                  :model-value="record.enabled"
+                  size="small"
+                  @change="(v: any) => toggleDeploy(record, v)"
+                />
+                <a-button
+                  size="mini" type="outline"
+                  :loading="deployingId === record.id"
+                  @click="runDeploy(record.id)"
+                >立即部署</a-button>
+                <a-button
+                  size="mini"
+                  :loading="testingId === record.id"
+                  @click="testDeploy(record.id)"
+                >测试</a-button>
+                <a-button size="mini" type="outline" @click="openDeploy(record)" v-permission="'ssl-deploy.edit'">编辑</a-button>
+                <a-popconfirm content="确认删除该部署目标？" type="warning" @ok="deleteDeploy(record.id)">
+                  <a-button size="mini" status="danger" v-permission="'ssl-deploy.delete'">删除</a-button>
+                </a-popconfirm>
+              </a-space>
+            </template>
+          </a-table-column>
+        </template>
+      </a-table>
+    </a-card>
+
     <!-- 签发弹窗 -->
     <a-modal
       v-model:visible="issueVisible"
@@ -81,6 +142,58 @@
         </a-form-item>
         <a-form-item label="DNS 提供商">
           <a-input model-value="阿里云 DNS（凭据在系统配置中维护）" disabled />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 部署目标编辑弹窗 -->
+    <a-modal
+      v-model:visible="deployVisible"
+      :title="deployForm.id ? '编辑部署目标' : '新建部署目标'"
+      :width="620"
+      :mask-closable="false"
+      @ok="submitDeploy"
+      :ok-loading="deploySaving"
+    >
+      <a-form :model="deployForm" auto-label-width>
+        <a-form-item label="名称" required>
+          <a-input v-model="deployForm.title" placeholder="如：web-01 nginx" />
+        </a-form-item>
+        <a-form-item label="绑定域名" required help="证书覆盖该域名（含通配符形态）时自动触发部署">
+          <a-input v-model="deployForm.domain" placeholder="haoduoya.cc" />
+        </a-form-item>
+        <a-form-item label="部署模式" required help="本机：直接落盘执行；远程：SSH 免密登录">
+          <a-radio-group v-model="deployForm.mode">
+            <a-radio value="local">本机</a-radio>
+            <a-radio value="remote">远程 SSH</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <template v-if="deployForm.mode === 'remote'">
+          <a-form-item label="主机" required>
+            <a-input v-model="deployForm.config.host" placeholder="IP 或主机名" />
+          </a-form-item>
+          <a-form-item label="端口">
+            <a-input-number v-model="deployForm.config.port" :min="1" :max="65535" />
+          </a-form-item>
+          <a-form-item label="用户名" required>
+            <a-input v-model="deployForm.config.username" placeholder="root" />
+          </a-form-item>
+          <a-form-item label="私钥" required help="OpenSSH/PEM 私钥；公钥需追加到目标机 ~/.ssh/authorized_keys">
+            <a-textarea
+              v-model="deployForm.config.privateKey"
+              :auto-size="{ minRows: 3, maxRows: 8 }"
+              placeholder="-----BEGIN PRIVATE KEY-----"
+            />
+          </a-form-item>
+        </template>
+        <a-form-item label="证书路径" required :help="deployForm.mode === 'local' ? '本机绝对路径' : '远端绝对路径'">
+          <a-input v-model="deployForm.config.certPath" placeholder="/etc/nginx/ssl/fullchain.pem" />
+        </a-form-item>
+        <a-form-item label="私钥路径" required>
+          <a-input v-model="deployForm.config.keyPath" placeholder="/etc/nginx/ssl/privkey.pem" />
+        </a-form-item>
+        <a-form-item label="reload 命令" required help="证书写入后执行，如 systemctl reload nginx">
+          <a-input v-model="deployForm.config.reloadCmd" placeholder="systemctl reload nginx" />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -139,7 +252,8 @@
     issuing.value = true;
     try {
       // 签发为同步阻塞流程（60-120 秒），单独放宽超时
-      const res = await axios.post(
+      // 全局拦截器已解包信封：res 即 {code, data, message}
+      const res: any = await axios.post(
         '/ssl/order',
         { domains: domains.join(','), ca: issueForm.value.ca },
         {
@@ -148,12 +262,12 @@
           timeout: 180000,
         }
       );
-      if (res.data.code === '0') {
+      if (res.code === '0') {
         Message.success('证书签发成功');
         issueVisible.value = false;
         load();
       } else {
-        Message.error(res.data.message || '签发失败');
+        Message.error(res.message || '签发失败');
       }
     } catch (e: any) {
       Message.error(e?.response?.data?.message ?? e?.message ?? '签发失败');
@@ -190,5 +304,128 @@
     }
   }
 
-  onMounted(load);
+  // ---------- 部署目标 ----------
+  const deployApi = new BaseApi('SslDeploy');
+
+  const deploys = ref<any[]>([]);
+  const deployLoading = ref(false);
+  const deployVisible = ref(false);
+  const deploySaving = ref(false);
+  const deployingId = ref<number | null>(null);
+  const testingId = ref<number | null>(null);
+  const deployForm = ref(emptyDeployForm());
+
+  function emptyDeployForm() {
+    return {
+      id: 0,
+      title: '',
+      domain: '',
+      mode: 'local',
+      config: { host: '', port: 22, username: '', privateKey: '', certPath: '', keyPath: '', reloadCmd: '' },
+    };
+  }
+
+  async function loadDeploys() {
+    deployLoading.value = true;
+    try {
+      const res = await deployApi.getRows(1, {}, 100);
+      deploys.value = res.data?.data ?? [];
+    } finally {
+      deployLoading.value = false;
+    }
+  }
+
+  function openDeploy(record?: any) {
+    if (record) {
+      // BaseApi 响应已转驼峰：config.cert_path => config.certPath
+      deployForm.value = {
+        id: record.id,
+        title: record.title,
+        domain: record.domain,
+        mode: record.mode,
+        config: Object.assign(emptyDeployForm().config, record.config ?? {}),
+      };
+    } else {
+      deployForm.value = emptyDeployForm();
+    }
+    deployVisible.value = true;
+  }
+
+  async function submitDeploy() {
+    const f = deployForm.value;
+    if (!f.title.trim() || !f.domain.trim()) {
+      Message.error('请填写名称与绑定域名');
+      return;
+    }
+    deploySaving.value = true;
+    try {
+      // 提交时 BaseApi 递归转下划线：config.privateKey => config.private_key
+      const payload = { title: f.title, domain: f.domain, channel: 'ssh', mode: f.mode, config: f.config };
+      const res = f.id ? await deployApi.updateItem(f.id, payload) : await deployApi.createItem(payload);
+      if (res.code === '0') {
+        Message.success(f.id ? '已更新' : '已创建');
+        deployVisible.value = false;
+        loadDeploys();
+      }
+    } finally {
+      deploySaving.value = false;
+    }
+  }
+
+  async function toggleDeploy(record: any, enabled: boolean) {
+    const res = await deployApi.updateItem(record.id, { enabled });
+    if (res.code === '0') {
+      record.enabled = enabled;
+    }
+  }
+
+  async function runDeploy(id: number) {
+    deployingId.value = id;
+    try {
+      const res: any = await axios.post(`/ssl/deploy/${id}/run`, {}, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 30000,
+      });
+      if (res.code === '0') {
+        Message.success('部署成功');
+        loadDeploys();
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '部署失败');
+    } finally {
+      deployingId.value = null;
+    }
+  }
+
+  async function testDeploy(id: number) {
+    testingId.value = id;
+    try {
+      const res: any = await axios.post(`/ssl/deploy/${id}/test`, {}, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 30000,
+      });
+      if (res.code === '0') {
+        Message.success(res.data?.message || '连通正常');
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '测试失败');
+    } finally {
+      testingId.value = null;
+    }
+  }
+
+  async function deleteDeploy(id: number) {
+    const res = await deployApi.deleteItem(id);
+    if (res.code === '0') {
+      Message.success('已删除');
+      loadDeploys();
+    }
+  }
+
+  onMounted(() => {
+    load();
+    loadDeploys();
+  });
 </script>
