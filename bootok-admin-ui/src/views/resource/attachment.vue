@@ -1,64 +1,110 @@
 <template>
   <div>
     <!-- 统计概览 -->
-    <a-row :gutter="10">
-      <a-col :span="8">
-        <a-card :bordered="false">
-          <a-statistic title="附件总数" :value="stats.total" style="text-align: center" />
+    <a-row :gutter="12">
+      <a-col :span="6">
+        <a-card :bordered="false" class="stat-card">
+          <div class="stat-body">
+            <div class="stat-icon" style="background: rgb(var(--blue-1)); color: rgb(var(--blue-6))">
+              <icon-file style="font-size: 26px" />
+            </div>
+            <div>
+              <div class="stat-value">{{ stats.total }}</div>
+              <div class="stat-label">附件总数</div>
+            </div>
+          </div>
         </a-card>
       </a-col>
-      <a-col :span="8">
-        <a-card :bordered="false">
-          <a-statistic title="总大小" style="text-align: center"><template #default><span>{{ formatSize(stats.size) }}</span></template></a-statistic>
+      <a-col :span="6">
+        <a-card :bordered="false" class="stat-card">
+          <div class="stat-body">
+            <div class="stat-icon" style="background: rgb(var(--green-1)); color: rgb(var(--green-6))">
+              <icon-storage style="font-size: 26px" />
+            </div>
+            <div>
+              <div class="stat-value">{{ formatSize(stats.size) }}</div>
+              <div class="stat-label">总大小</div>
+            </div>
+          </div>
         </a-card>
       </a-col>
-      <a-col :span="8">
-        <a-card :bordered="false">
-          <a-statistic title="本月新增" :value="stats.monthNew" style="text-align: center" />
+      <a-col :span="6">
+        <a-card :bordered="false" class="stat-card">
+          <div class="stat-body">
+            <div class="stat-icon" style="background: rgb(var(--orange-1)); color: rgb(var(--orange-6))">
+              <icon-arrow-rise style="font-size: 26px" />
+            </div>
+            <div>
+              <div class="stat-value">{{ stats.monthNew }}</div>
+              <div class="stat-label">本月新增</div>
+            </div>
+          </div>
+        </a-card>
+      </a-col>
+      <a-col :span="6">
+        <a-card :bordered="false" class="stat-card">
+          <div class="stat-body">
+            <div class="stat-icon" style="background: rgb(var(--purple-1)); color: rgb(var(--purple-6))">
+              <icon-cloud style="font-size: 26px" />
+            </div>
+            <div>
+              <div class="stat-value">{{ currentChannelTitle }}</div>
+              <div class="stat-label">当前渠道</div>
+            </div>
+          </div>
         </a-card>
       </a-col>
     </a-row>
 
-    <!-- 文件管理器：左目录树 + 右文件表 -->
-    <a-card :bordered="false" style="margin-top: 10px">
-      <template #extra>
+    <!-- 文件管理器 -->
+    <a-card :bordered="false" style="margin-top: 12px" :body-style="{ padding: '12px' }">
+      <template #title>
         <a-space>
+          <span>文件管理</span>
           <a-select
             v-model="currentChannelId"
-            style="width: 200px"
+            style="width: 210px"
+            size="small"
             placeholder="存储渠道"
             @change="onChannelChange"
           >
             <a-option v-for="c in channels" :key="c.id" :value="c.id">
               {{ c.title }}
-              <a-tag v-if="c.isDefault" color="green" style="margin-left: 4px">默认</a-tag>
+              <a-tag v-if="c.isDefault" color="green" size="small" style="margin-left: 4px">默认</a-tag>
             </a-option>
           </a-select>
+        </a-space>
+      </template>
+      <template #extra>
+        <a-space>
           <a-upload :custom-request="(doUpload as any)" :show-file-list="false" multiple>
-            <a-button type="primary" :loading="uploading">
+            <a-button type="primary" size="small" :loading="uploading">
               <template #icon><icon-upload /></template>
-              上传到此目录
+              上传
             </a-button>
           </a-upload>
-          <a-button @click="openMkdir(null)">
+          <a-button size="small" @click="openMkdir(null)">
             <template #icon><icon-folder-add /></template>
             新建目录
           </a-button>
-          <a-button @click="refresh">
+          <a-button size="small" @click="refresh">
             <template #icon><icon-refresh /></template>
             刷新
           </a-button>
         </a-space>
       </template>
 
-      <div style="display: flex; gap: 12px; height: 540px">
+      <div style="display: flex; gap: 12px; min-height: 480px">
         <!-- 左：目录树 -->
-        <div style="width: 260px; flex: 0 0 260px; overflow-y: auto; border-right: 1px solid var(--color-border-2); padding-right: 8px">
-          <a-button
-            long size="small" type="text"
-            :style="currentFolderId === null ? 'color: var(--color-text-1); font-weight: 500; justify-content: flex-start' : 'justify-content: flex-start'"
+        <div style="width: 250px; flex: 0 0 250px; overflow-y: auto; border-right: 1px solid var(--color-border-2); padding-right: 8px">
+          <div
+            class="tree-root"
+            :class="{ active: currentFolderId === null }"
             @click="enterFolder(null)"
-          >根目录</a-button>
+          >
+            <icon-home style="margin-right: 6px" />
+            全部文件
+          </div>
           <a-tree
             v-if="treeData.length"
             :data="treeData"
@@ -72,10 +118,10 @@
         <div style="flex: 1 1 auto; overflow-y: auto; min-width: 0">
           <a-breadcrumb style="margin-bottom: 10px">
             <a-breadcrumb-item>
-              <a-link :style="currentFolderId === null ? 'color: var(--color-text-1)' : ''" @click="enterFolder(null)">根目录</a-link>
+              <a-link :class="{ 'crumb-current': currentFolderId === null }" @click="enterFolder(null)">全部文件</a-link>
             </a-breadcrumb-item>
             <a-breadcrumb-item v-for="(seg, i) in breadcrumb" :key="i">
-              <a-link :style="i === breadcrumb.length - 1 ? 'color: var(--color-text-1)' : ''" @click="enterFolder(segmentIds[i])">{{ seg }}</a-link>
+              <a-link :class="{ 'crumb-current': i === breadcrumb.length - 1 }" @click="enterFolder(segmentIds[i])">{{ seg }}</a-link>
             </a-breadcrumb-item>
           </a-breadcrumb>
 
@@ -89,40 +135,37 @@
             <template #columns>
               <a-table-column title="名称">
                 <template #cell="{ record }">
-                  <a-space>
-                    <a-image
-                      v-if="!record.__isDir && isImage(record.ext) && record.url"
-                      :src="record.url"
-                      :width="32"
-                      :height="32"
-                      fit="cover"
-                      style="border-radius: 3px; vertical-align: middle"
-                    />
-                    <icon-folder v-else-if="record.__isDir" style="color: rgb(var(--warning-6)); font-size: 20px" />
-                    <span
-                      :style="record.__isDir ? 'cursor: pointer' : ''"
-                      @click="record.__isDir ? enterFolder(record.id) : undefined"
-                    >{{ record.__isDir ? record.name : (record.originalName || record.path) }}</span>
-                  </a-space>
+                  <div class="file-name" @click="record.__isDir ? enterFolder(record.id) : previewFile(record)">
+                    <span class="file-icon" :style="{ color: iconColor(record) }">
+                      <icon-folder v-if="record.__isDir" style="font-size: 22px" />
+                      <icon-image v-else-if="isImage(record.ext)" style="font-size: 20px" />
+                      <icon-video-camera v-else-if="isVideo(record.ext)" style="font-size: 20px" />
+                      <icon-music v-else-if="isAudio(record.ext)" style="font-size: 20px" />
+                      <icon-archive v-else-if="isArchive(record.ext)" style="font-size: 20px" />
+                      <icon-file v-else style="font-size: 20px" />
+                    </span>
+                    <span class="file-title">{{ record.__isDir ? record.name : (record.originalName || record.path) }}</span>
+                  </div>
                 </template>
               </a-table-column>
-              <a-table-column title="大小" :width="100" align="center">
+              <a-table-column title="大小" :width="90" align="center">
                 <template #cell="{ record }">{{ record.__isDir ? '--' : formatSize(record.size) }}</template>
               </a-table-column>
               <a-table-column title="修改时间" :width="170">
                 <template #cell="{ record }">{{ record.updatedAt ?? record.createdAt ?? '-' }}</template>
               </a-table-column>
-              <a-table-column title="操作" :width="360">
+              <a-table-column title="操作" :width="320">
                 <template #cell="{ record }">
-                  <a-space>
+                  <a-space size="mini">
                     <template v-if="record.__isDir">
                       <a-button size="mini" type="text" @click="openMkdir(record)">新建子目录</a-button>
-                      <a-button size="mini" type="text" @click="openRenameDir(record)">重命名</a-button>
+                      <a-button size="mini" type="text" @click="openMkdir(record)">重命名</a-button>
                       <a-popconfirm content="递归删除目录与其下全部内容？" type="warning" @ok="deleteDir(record)">
                         <a-button size="mini" status="danger" type="text">删除</a-button>
                       </a-popconfirm>
                     </template>
                     <template v-else>
+                      <a-button v-if="isImage(record.ext)" size="mini" type="text" @click="previewFile(record)">预览</a-button>
                       <a-button size="mini" type="text" @click="copyLink(record)">复制链接</a-button>
                       <a-button size="mini" type="text" @click="downloadFile(record)">下载</a-button>
                       <a-button size="mini" type="text" @click="openRenameFile(record)">重命名</a-button>
@@ -145,6 +188,9 @@
         </div>
       </div>
     </a-card>
+
+    <!-- 图片预览 -->
+    <a-image-preview v-model:visible="previewVisible" :src="previewSrc" />
 
     <!-- 新建/重命名目录弹窗 -->
     <a-modal
@@ -184,8 +230,8 @@
   import { computed, onMounted, reactive, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
-  import { getToken } from '@/utils/auth';
   import field from '@/utils/field';
+  import { getToken } from '@/utils/auth';
 
   // 统一 raw 请求：全局拦截器已解包信封（res 即 {code, data, message}），失败路径以失败信封落定
   async function api(method: any, url: string, data?: any): Promise<any> {
@@ -222,13 +268,18 @@
   // ---------- 渠道 ----------
   const channels = ref<any[]>([]);
   const currentChannelId = ref<number | undefined>(undefined);
+  const currentChannelTitle = computed(() => {
+    const c = channels.value.find((x) => x.id === currentChannelId.value);
+    return c ? c.title : '--';
+  });
 
   async function loadChannels() {
-    const res: any = await api('GET', '/auto/storage-channel/all');
-    if (res.code === '0') channels.value = res.data ?? [];
-    if (currentChannelId.value === null) {
+    // 存储渠道未开放 getAll，走 rows 接口
+    const res: any = await api('POST', '/auto/storage-channel/rows?page=1&page_size=100', {});
+    if (res.code === '0') channels.value = res.data?.data ?? [];
+    if (currentChannelId.value === undefined) {
       const def = channels.value.find((c) => c.isDefault) ?? channels.value[0];
-      currentChannelId.value = def?.id ?? null;
+      currentChannelId.value = def?.id ?? undefined;
     }
   }
 
@@ -242,7 +293,6 @@
   const treeData = ref<any[]>([]);
   const currentFolderId = ref<number | null>(null);
 
-  // 平铺 nodes 组装嵌套树（根哨兵 id=0 不进树）
   function buildTree() {
     const mk = (parentId: number | null): any[] =>
       flatNodes.value
@@ -294,11 +344,14 @@
     loadFiles();
   }
 
+  async function refresh() {
+    await Promise.all([loadTree(), loadFiles(), loadStats()]);
+  }
+
   // ---------- 文件与子目录 ----------
   const filesLoading = ref(false);
   const allAttachments = ref<any[]>([]);
 
-  // 当前目录视图：子目录行 + 附件行（合成）
   const currentEntries = computed(() => {
     const dirs = flatNodes.value
       .filter((n) => (n.parentId ?? null) === currentFolderId.value)
@@ -319,15 +372,48 @@
     }
   }
 
-  async function refresh() {
-    await Promise.all([loadTree(), loadFiles(), loadStats()]);
+  // ---------- 类型 ----------
+  const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+  const VIDEO_EXTS = ['mp4', 'avi', 'mov', 'wmv', 'flv'];
+  const AUDIO_EXTS = ['mp3', 'wav', 'flac', 'ogg'];
+  const ARCHIVE_EXTS = ['zip', 'rar', '7z', 'gz', 'tar'];
+
+  function isImage(ext: string): boolean {
+    return IMAGE_EXTS.includes((ext || '').toLowerCase());
+  }
+  function isVideo(ext: string): boolean {
+    return VIDEO_EXTS.includes((ext || '').toLowerCase());
+  }
+  function isAudio(ext: string): boolean {
+    return AUDIO_EXTS.includes((ext || '').toLowerCase());
+  }
+  function isArchive(ext: string): boolean {
+    return ARCHIVE_EXTS.includes((ext || '').toLowerCase());
+  }
+  function iconColor(record: any): string {
+    if (record.__isDir) return 'rgb(var(--warning-6))';
+    const e = (record.ext || '').toLowerCase();
+    if (isImage(e)) return 'rgb(var(--green-6))';
+    if (isVideo(e)) return 'rgb(var(--purple-6))';
+    if (isAudio(e)) return 'rgb(var(--pink-6))';
+    if (isArchive(e)) return 'rgb(var(--orange-6))';
+    return 'rgb(var(--blue-6))';
+  }
+
+  // ---------- 图片预览 ----------
+  const previewVisible = ref(false);
+  const previewSrc = ref('');
+
+  function previewFile(record: any) {
+    if (!record.url) return;
+    previewSrc.value = record.url;
+    previewVisible.value = true;
   }
 
   // ---------- 上传 ----------
   const uploading = ref(false);
 
   async function doUpload(option: any): Promise<any> {
-    // Arco customRequest 类型宽松化（发起请求后自行管理状态）
     uploading.value = true;
     try {
       const form = new FormData();
@@ -342,30 +428,23 @@
         },
       });
       Message.success(`已上传 ${option.fileItem.name}`);
-      await Promise.all([loadFiles(), loadStats()]);
+      await refresh();
     } catch (e: any) {
       Message.error(e?.message ?? '上传失败');
     } finally {
       uploading.value = false;
     }
+    return option;
   }
 
   // ---------- 目录 ----------
   const mkdirVisible = ref(false);
   const mkdirSaving = ref(false);
-  const mkdirForm = reactive({ id: 0, name: '', renameTarget: null as any });
+  const mkdirForm = reactive({ id: 0, name: '' });
 
-  function openMkdir(_parent?: any) {
-    mkdirForm.id = 0;
-    mkdirForm.name = '';
-    mkdirForm.renameTarget = null;
-    mkdirVisible.value = true;
-  }
-
-  function openRenameDir(record: any) {
-    mkdirForm.id = record.id;
-    mkdirForm.name = record.name;
-    mkdirForm.renameTarget = record;
+  function openMkdir(record?: any) {
+    mkdirForm.id = record ? record.id : 0;
+    mkdirForm.name = record ? record.name : '';
     mkdirVisible.value = true;
   }
 
@@ -445,7 +524,6 @@
     }
   }
 
-  // 移动目标：排除自身与自身子树（简化：排除自身所在目录项）
   function moveTargets(record: any) {
     const targets = [{ id: 0, name: '根目录' }];
     for (const n of flatNodes.value) {
@@ -474,32 +552,9 @@
     }
   }
 
-  async function downloadFile(record: any) {
-    try {
-      const res = await axios.get(`/storage/file?path=${encodeURIComponent(ltrim(record.path))}`, {
-        baseURL: import.meta.env.VITE_API_BASE_URL as string,
-        responseType: 'blob',
-        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
-      });
-      const url = URL.createObjectURL(res.data as Blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = record.originalName || record.path;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e: any) {
-      Message.error(e?.message ?? '下载失败');
-    }
-  }
-
-  function ltrim(s: string): string {
-    return s.startsWith('/') ? s.slice(1) : s;
-  }
-
-  const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-
-  function isImage(ext: string): boolean {
-    return IMAGE_EXTS.includes((ext || '').toLowerCase());
+  function downloadFile(record: any) {
+    // 附件 URL 即公网/CDN 直链，新窗口打开由浏览器处理下载
+    if (record.url) window.open(record.url);
   }
 
   async function deleteFile(record: any) {
@@ -513,6 +568,72 @@
 
   onMounted(async () => {
     await loadChannels();
-    await Promise.all([loadFiles(), loadStats()]);
+    await Promise.all([loadTree(), loadFiles(), loadStats()]);
   });
 </script>
+
+<style scoped>
+  .stat-card :deep(.arco-card-body) {
+    padding: 16px 20px;
+  }
+  .stat-body {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  .stat-label {
+    font-size: 12px;
+    color: var(--color-text-3);
+  }
+
+  .tree-root {
+    display: flex;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--color-text-2);
+    margin-bottom: 4px;
+  }
+  .tree-root:hover {
+    background: var(--color-fill-2);
+  }
+  .tree-root.active {
+    background: var(--color-fill-2);
+    color: var(--color-text-1);
+    font-weight: 500;
+  }
+  .crumb-current {
+    color: var(--color-text-1);
+  }
+
+  .file-name {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: default;
+  }
+  .file-icon {
+    display: inline-flex;
+  }
+  .file-title {
+    word-break: break-all;
+  }
+  .row-dir .file-title {
+    font-weight: 500;
+  }
+</style>
