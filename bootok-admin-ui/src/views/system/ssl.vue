@@ -34,9 +34,10 @@
           <a-table-column title="到期时间" :width="170">
             <template #cell="{ record }">{{ record.expiresAt ?? '-' }}</template>
           </a-table-column>
-          <a-table-column title="操作" :width="230">
+          <a-table-column title="操作" :width="290">
             <template #cell="{ record }">
               <a-space>
+                <a-button size="mini" type="outline" @click="openProgress(record.id)">进度</a-button>
                 <a-button
                   size="mini" type="outline" v-if="record.status === 'issued'"
                   @click="download(record.id, 'fullchain')"
@@ -149,17 +150,19 @@
       </a-table>
     </a-card>
 
-    <!-- 签发弹窗 -->
+    <!-- 签发弹窗：表单模式 → 提交后切换为过程进度 -->
     <a-modal
       v-model:visible="issueVisible"
-      title="签发 SSL 证书"
-      :width="560"
+      :title="issueTaskId ? '签发进度' : '签发 SSL 证书'"
+      :width="issueTaskId ? 620 : 560"
       :mask-closable="false"
-      @ok="submitIssue"
+      :footer="!issueTaskId"
+      @before-ok="handleIssueOk"
+      @close="closeIssue"
       :ok-loading="issuing"
-      ok-text="开始签发（约 1-2 分钟）"
+      ok-text="开始签发（后台执行）"
     >
-      <a-form :model="issueForm" auto-label-width>
+      <a-form v-if="!issueTaskId" :model="issueForm" auto-label-width>
         <a-form-item label="域名" required help="多个域名用逗号或换行分隔，支持通配符（如 *.haoduoya.cc）">
           <a-textarea
             v-model="issueForm.domains"
@@ -181,6 +184,23 @@
           />
         </a-form-item>
       </a-form>
+      <div v-else>
+        <a-steps :current="stepIndex" :status="stepsStatus" size="small">
+          <a-step v-for="s in ISSUE_STEPS" :key="s" :title="s" />
+        </a-steps>
+        <div class="ssl-issue-log">
+          <div v-if="!progressLog.length" class="ssl-issue-log-line">排队中，等待签发进程处理…</div>
+          <div v-for="(l, i) in progressLog" :key="i" class="ssl-issue-log-line">
+            <span class="ssl-issue-log-time">{{ l.time }}</span>
+            <span :class="{ 'ssl-issue-log-err': l.stage === 'failed' }">{{ l.message }}</span>
+          </div>
+        </div>
+        <a-space v-if="progressTask?.status === 'issued'" style="margin-top: 12px">
+          <a-button type="primary" size="small" @click="download(progressTask.id, 'fullchain')">下载证书</a-button>
+          <a-button size="small" @click="download(progressTask.id, 'privkey')">下载私钥</a-button>
+          <a-button size="small" @click="closeIssue">完成</a-button>
+        </a-space>
+      </div>
     </a-modal>
 
     <!-- DNS 凭据编辑弹窗 -->
@@ -281,7 +301,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
   import BaseApi from '@/api/base';
@@ -321,6 +341,11 @@
     issueVisible.value = true;
   }
 
+  // Arco 弹窗点 OK 默认自动关闭；签发需要留在弹窗内看进度，故拦截关闭，由提交逻辑自行控制
+  function handleIssueOk(done: (closed: boolean) => void) {
+    submitIssue();
+  }
+
   async function submitIssue() {
     const domains = issueForm.value.domains
       .split(/[,;\n]/)
@@ -336,30 +361,89 @@
     }
     issuing.value = true;
     try {
-      // 签发为同步阻塞流程（60-120 秒），单独放宽超时
-      // 全局拦截器已解包信封：res 即 {code, data, message}
+      // 下单即时返回，签发由后台进程执行；弹窗切换为过程进度轮询
       const res: any = await axios.post(
         '/ssl/order',
         { domains: domains.join(','), ca: issueForm.value.ca, dns_account_id: issueForm.value.dnsAccountId },
         {
           baseURL: import.meta.env.VITE_API_BASE_URL as string,
           headers: { Authorization: `Bearer ${getToken() ?? ''}` },
-          timeout: 180000,
         }
       );
       if (res.code === '0') {
-        Message.success('证书签发成功');
-        issueVisible.value = false;
-        load();
+        startPolling(res.data.id);
       } else {
-        Message.error(res.message || '签发失败');
+        Message.error(res.message || '下单失败');
       }
     } catch (e: any) {
-      Message.error(e?.response?.data?.message ?? e?.message ?? '签发失败');
+      Message.error(e?.response?.data?.message ?? e?.message ?? '下单失败');
     } finally {
       issuing.value = false;
     }
   }
+
+  // ---------- 签发进度轮询 ----------
+  const ISSUE_STEPS = ['创建订单', '添加 DNS 记录', '等待 DNS 生效', '挑战验证', '签发证书'];
+  const STAGE_INDEX: Record<string, number> = { order: 0, dns: 1, dns_wait: 2, challenge: 3, finalize: 4 };
+  const issueTaskId = ref<number | null>(null);
+  const progressTask = ref<any>(null);
+  let pollTimer: number | undefined;
+
+  const stepIndex = computed(() => {
+    if (progressTask.value?.status === 'issued') {
+      return ISSUE_STEPS.length;
+    }
+    return STAGE_INDEX[progressTask.value?.stage ?? ''] ?? 0;
+  });
+  const stepsStatus = computed(() => (progressTask.value?.status === 'failed' ? 'error' : 'process'));
+  const progressLog = computed<any[]>(() => {
+    try {
+      return JSON.parse(progressTask.value?.progress ?? '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  function startPolling(id: number) {
+    issueTaskId.value = id;
+    progressTask.value = null;
+    stopPolling();
+    const poll = async () => {
+      const res = await taskApi.getItem(id);
+      if (res.code === '0' && res.data) {
+        progressTask.value = res.data;
+        if (res.data.status === 'issued' || res.data.status === 'failed') {
+          stopPolling();
+          load();
+          loadDeploys();
+        }
+      }
+    };
+    void poll();
+    pollTimer = window.setInterval(poll, 2000);
+  }
+
+  // 从任务列表重开进度视图（关闭弹窗不影响后台任务，随时可恢复查看）
+  function openProgress(id: number) {
+    issueVisible.value = true;
+    startPolling(id);
+  }
+
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = undefined;
+    }
+  }
+
+  function closeIssue() {
+    stopPolling();
+    issueTaskId.value = null;
+    progressTask.value = null;
+    issueVisible.value = false;
+  }
+
+  onUnmounted(stopPolling);
 
   async function download(id: number, type: 'fullchain' | 'privkey') {
     try {
@@ -636,3 +720,24 @@
     loadDnsAccounts();
   });
 </script>
+
+<style scoped>
+  .ssl-issue-log {
+    margin-top: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 10px 12px;
+    background: var(--color-fill-2);
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 22px;
+  }
+  .ssl-issue-log-time {
+    color: var(--color-text-3);
+    margin-right: 10px;
+    font-family: monospace;
+  }
+  .ssl-issue-log-err {
+    color: rgb(var(--red-6));
+  }
+</style>

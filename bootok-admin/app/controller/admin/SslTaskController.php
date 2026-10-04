@@ -5,36 +5,21 @@ namespace app\controller\admin;
 use app\controller\Controller;
 use app\model\DnsAccount;
 use app\model\SslTask;
-use app\service\SslDeployService;
-use BootOk\Acme\AcmeClient;
-use BootOk\Acme\CertificateIssuer;
 use BootOk\Acme\Signer;
 use support\Request;
 use support\Response;
 
 /**
- * SSL 证书签发可视化操作端点
+ * SSL 证书签发操作端点
  *
- * webman 常驻进程无 FPM 超时限制：下单请求同步阻塞完成
- * 下单 → 阿里云加 TXT → DNS 传播探测 → 挑战验证 → finalize（通常 60-90 秒），
- * 前端以转圈等待 + 轮询任务状态呈现。
+ * 下单即返回：校验落库待签发任务后立即响应，签发由 ssl 后台进程异步执行
+ * （下单 → 加 TXT → DNS 传播 → 挑战验证 → finalize，通常 60-120 秒），
+ * 过程通过任务 stage/progress 字段轮询呈现，前端不再长阻塞。
  */
 class SslTaskController extends Controller
 {
-    private function issuer(DnsAccount $account, string $accountKeyPem, string $ca, ?string $email = null): CertificateIssuer
-    {
-        $caDir = $ca === 'production' ? AcmeClient::CA_LETS_ENCRYPT : AcmeClient::CA_LETS_ENCRYPT_STAGING;
-
-        return new CertificateIssuer(
-            caDirectory:   $caDir,
-            accountKeyPem: $accountKeyPem,
-            email:         $email,
-            dns:           $account->provider(),
-        );
-    }
-
     /**
-     * 一站式签发：同步阻塞（60-120 秒），前端转圈等待。
+     * 下单：异步签发的入队动作。
      * POST /ssl/order {domains: "a.com,*.a.com", ca: staging|production, dns_account_id: 1}
      */
     public function order(Request $request): Response
@@ -55,45 +40,17 @@ class SslTaskController extends Controller
             return $this->error('请选择 DNS 凭据（可在页面下方维护）', '4005');
         }
 
-        $accountKey = Signer::generateKey();
-        $certKey = Signer::generateKey();
-
         $row = SslTask::create([
             'domains'         => json_encode($domains, JSON_UNESCAPED_UNICODE),
             'ca'              => $ca,
             'dns_provider'    => $account->provider,
             'dns_account_id'  => $account->id,
-            'account_key_pem' => $accountKey,
-            'cert_key_pem'    => $certKey,
+            'account_key_pem' => Signer::generateKey(),
+            'cert_key_pem'    => Signer::generateKey(),
             'status'          => 'created',
         ]);
 
-        try {
-            $result = $this->issuer($account, $accountKey, $ca, 'admin@haoduoya.cc')->issue($domains, $certKey);
-
-            $row->fullchain_pem = $result['cert'];
-            $row->status = 'issued';
-            $parsed = openssl_x509_parse($result['cert']);
-            $row->expires_at = isset($parsed['validTo_time_t']) ? date('Y-m-d H:i:s', $parsed['validTo_time_t']) : null;
-            $row->save();
-
-            // 签发成功即分发部署：目标失败不影响签发结果（错误记录在目标行）
-            $deploy = SslDeployService::dispatchForTask($row);
-
-            return $this->success([
-                'id'         => $row->id,
-                'status'     => 'issued',
-                'domains'    => $domains,
-                'expires_at' => $row->expires_at,
-                'deploy'     => $deploy,
-            ]);
-        } catch (\Throwable $e) {
-            $row->status = 'failed';
-            $row->error = mb_substr($e->getMessage(), 0, 500);
-            $row->save();
-
-            return $this->error('签发失败：' . $e->getMessage());
-        }
+        return $this->success(['id' => $row->id, 'status' => 'created']);
     }
 
     /**

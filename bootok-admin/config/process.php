@@ -57,6 +57,12 @@ $processes = [
         'count' => 1,
         'constructor' => []
     ],
+    // SSL 签发后台进程：消费待签发任务（阻塞 60-120 秒），下单接口即时返回
+    'ssl' => [
+        'handler' => app\process\SslWorker::class,
+        'count' => 1,
+        'constructor' => []
+    ],
     // File update detection and automatic reload
     'monitor' => [
         'handler' => app\process\Monitor::class,
