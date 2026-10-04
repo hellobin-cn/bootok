@@ -3,7 +3,7 @@
 namespace app\service\cloud\strategy;
 
 use app\service\cloud\contract\CdnCertStrategyInterface;
-use app\service\cloud\TencentClient;
+use app\service\cloud\client\TencentClient;
 use RuntimeException;
 
 /**

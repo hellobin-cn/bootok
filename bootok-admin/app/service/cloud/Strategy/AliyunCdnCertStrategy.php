@@ -2,7 +2,7 @@
 
 namespace app\service\cloud\strategy;
 
-use app\service\cloud\AliyunClient;
+use app\service\cloud\client\AliyunClient;
 use app\service\cloud\contract\CdnCertStrategyInterface;
 use RuntimeException;
 
