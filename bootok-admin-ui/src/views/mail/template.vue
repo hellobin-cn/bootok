@@ -84,7 +84,7 @@
 
     <!-- 发送测试弹窗 -->
     <a-modal v-model:visible="testVisible" title="发送测试邮件" :width="440" @before-ok="handleSendTest" :mask-closable="false">
-      <a-form :model="{ testTo }">
+      <a-form :model="{ testTo }" label-align="right" auto-label-width>
         <a-form-item label="收件邮箱" required help="按模板示例变量渲染实发">
           <a-input v-model="testTo" placeholder="you@example.com" />
         </a-form-item>
