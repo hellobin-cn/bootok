@@ -3,12 +3,17 @@
 namespace app\controller\admin;
 
 use app\controller\Controller;
-use app\storage\Storage;
+use app\storage\ChannelManager;
+use DI\Attribute\Inject;
 use support\Request;
 use support\Response;
 
 class UploadController extends Controller
 {
+    /** 存储驱动经容器注入（默认渠道），业务代码不写死具体实现 */
+    #[Inject]
+    private ChannelManager $channels;
+
     /** 允许的扩展名（不含svg：可内嵌脚本，同源托管构成存储型XSS） */
     private const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'mp4', 'mp3', 'txt', 'csv', 'md'];
 
@@ -51,8 +56,10 @@ class UploadController extends Controller
         $uploadName = (string)$file->getUploadName();
         $size = (int)$file->getSize();
         try {
-            $url = Storage::driver()->put($file, $relative);
-            $this->recordAttachment($relative, $uploadName, $size, $extension);
+            $storage = $this->channels->default();
+            $storage->put($file, $relative);
+            $url = $storage->url($relative);
+            $this->recordAttachment($this->channels->defaultChannel()->id, $relative, $uploadName, $size, $extension);
             return $url;
         } catch (\Throwable $e) {
             return '[' . $e->getMessage() . ']';
@@ -60,14 +67,15 @@ class UploadController extends Controller
     }
 
     /**
-     * 附件落库（数据资产化：谁传的/何时/多大）；失败不阻断上传
+     * 附件落库（数据资产化：谁传的/何时/多大/存于哪个渠道）；失败不阻断上传
      */
-    private function recordAttachment(string $relative, string $uploadName, int $size, string $extension): void
+    private function recordAttachment(int $channelId, string $relative, string $uploadName, int $size, string $extension): void
     {
         try {
             \app\model\Attachment::create([
                 'admin_id'      => $this->adminId,
                 'admin_name'    => $this->adminName,
+                'channel_id'    => $channelId,
                 'path'          => '/' . $relative,
                 'original_name' => mb_substr($uploadName, 0, 255),
                 'size'          => $size,

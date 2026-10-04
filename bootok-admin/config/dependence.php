@@ -1,16 +1,15 @@
 <?php
-/**
- * This file is part of webman.
- *
- * Licensed under The MIT License
- * For full copyright and license information, please see the MIT-LICENSE.txt
- * Redistributions of files must retain the above copyright notice.
- *
- * @author    walkor<walkor@workerman.net>
- * @copyright walkor<walkor@workerman.net>
- * @link      http://www.workerman.net/
- * @license   http://www.opensource.org/licenses/mit-license.php MIT License
- */
 
+use app\storage\ChannelManager;
+use app\storage\StorageInterface;
+
+/**
+ * PHP-DI 容器定义
+ *
+ * 存储装配的唯一出口：业务代码只依赖 StorageInterface（#[Inject]），
+ * 具体驱动由存储渠道（sys_storage_channel）决定，渠道切换不改业务代码。
+ */
 return [
+    StorageInterface::class => fn () => (new ChannelManager())->default(),
+    ChannelManager::class   => fn () => new ChannelManager(),
 ];
