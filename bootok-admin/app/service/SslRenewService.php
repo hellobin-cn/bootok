@@ -2,6 +2,7 @@
 
 namespace app\service;
 
+use app\model\DnsAccount;
 use app\model\SslTask;
 use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
@@ -18,12 +19,21 @@ class SslRenewService
 {
     private const RENEW_WINDOW_DAYS = 30;
 
-    public static function dns(): DnsProvider
+    /**
+     * 按任务回溯 DNS 凭据；历史任务无凭据引用时回退 sys_config 旧配置
+     */
+    public static function dnsFor(SslTask $task): DnsProvider
     {
+        if ($task->dns_account_id) {
+            $account = DnsAccount::find($task->dns_account_id);
+            if ($account !== null) {
+                return $account->provider();
+            }
+        }
         $key = ConfigService::get('ssl_aliyun_key', '');
         $secret = ConfigService::get('ssl_aliyun_secret', '');
         if ($key === '' || $secret === '') {
-            throw new \RuntimeException('ssl_aliyun_key / ssl_aliyun_secret 未配置');
+            throw new \RuntimeException('任务未关联 DNS 凭据，且 ssl_aliyun_key / ssl_aliyun_secret 未配置');
         }
 
         return new AliyunProvider([
@@ -61,7 +71,7 @@ class SslRenewService
                     caDirectory:   $caDir,
                     accountKeyPem: $row->account_key_pem,
                     email:         null,
-                    dns:           self::dns(),
+                    dns:           self::dnsFor($row),
                 );
                 $result = $issuer->issue($domains, $row->cert_key_pem);
 

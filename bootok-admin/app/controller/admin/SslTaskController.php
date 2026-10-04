@@ -3,13 +3,11 @@
 namespace app\controller\admin;
 
 use app\controller\Controller;
+use app\model\DnsAccount;
 use app\model\SslTask;
-use app\service\ConfigService;
 use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
-use BootOk\Acme\Dns\AliyunProvider;
-use BootOk\Acme\Dns\DnsProvider;
 use BootOk\Acme\Signer;
 use support\Request;
 use support\Response;
@@ -23,24 +21,7 @@ use support\Response;
  */
 class SslTaskController extends Controller
 {
-    private const CFG_ALIYUN_KEY = 'ssl_aliyun_key';
-    private const CFG_ALIYUN_SECRET = 'ssl_aliyun_secret';
-
-    private function dns(): DnsProvider
-    {
-        $key = ConfigService::get(self::CFG_ALIYUN_KEY, '');
-        $secret = ConfigService::get(self::CFG_ALIYUN_SECRET, '');
-        if ($key === '' || $secret === '') {
-            throw new \RuntimeException('请先在系统配置中维护 ssl_aliyun_key / ssl_aliyun_secret');
-        }
-
-        return new AliyunProvider([
-            'access_key_id'     => $key,
-            'access_key_secret' => $secret,
-        ]);
-    }
-
-    private function issuer(string $accountKeyPem, string $ca, ?string $email = null): CertificateIssuer
+    private function issuer(DnsAccount $account, string $accountKeyPem, string $ca, ?string $email = null): CertificateIssuer
     {
         $caDir = $ca === 'production' ? AcmeClient::CA_LETS_ENCRYPT : AcmeClient::CA_LETS_ENCRYPT_STAGING;
 
@@ -48,13 +29,13 @@ class SslTaskController extends Controller
             caDirectory:   $caDir,
             accountKeyPem: $accountKeyPem,
             email:         $email,
-            dns:           $this->dns(),
+            dns:           $account->provider(),
         );
     }
 
     /**
      * 一站式签发：同步阻塞（60-120 秒），前端转圈等待。
-     * POST /ssl/order {domains: "a.com,*.a.com", ca: staging|production}
+     * POST /ssl/order {domains: "a.com,*.a.com", ca: staging|production, dns_account_id: 1}
      */
     public function order(Request $request): Response
     {
@@ -69,6 +50,10 @@ class SslTaskController extends Controller
                 return $this->error('域名格式错误：' . $domain, '4005');
             }
         }
+        $account = DnsAccount::find((int) $request->post('dns_account_id', 0));
+        if ($account === null) {
+            return $this->error('请选择 DNS 凭据（可在页面下方维护）', '4005');
+        }
 
         $accountKey = Signer::generateKey();
         $certKey = Signer::generateKey();
@@ -76,14 +61,15 @@ class SslTaskController extends Controller
         $row = SslTask::create([
             'domains'         => json_encode($domains, JSON_UNESCAPED_UNICODE),
             'ca'              => $ca,
-            'dns_provider'    => 'aliyun',
+            'dns_provider'    => $account->provider,
+            'dns_account_id'  => $account->id,
             'account_key_pem' => $accountKey,
             'cert_key_pem'    => $certKey,
             'status'          => 'created',
         ]);
 
         try {
-            $result = $this->issuer($accountKey, $ca, 'admin@haoduoya.cc')->issue($domains, $certKey);
+            $result = $this->issuer($account, $accountKey, $ca, 'admin@haoduoya.cc')->issue($domains, $certKey);
 
             $row->fullchain_pem = $result['cert'];
             $row->status = 'issued';
