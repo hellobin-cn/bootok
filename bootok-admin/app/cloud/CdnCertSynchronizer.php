@@ -29,12 +29,12 @@ class CdnCertSynchronizer
 
         if ($provider === 'aliyun') {
             self::client('cdn.aliyuncs.com', '2018-05-10', $config)->call('SetCdnDomainSSLCertificate', [
-                'DomainName'            => $cdnDomain,
-                'SSLProtocol'           => 'on',
-                'CertType'              => 'upload',
-                'CertificateName'       => $certName,
-                'Certificate'           => $fullchain,
-                'CertificatePrivateKey' => $privkey,
+                'DomainName'   => $cdnDomain,
+                'SSLProtocol'  => 'on',
+                'CertType'     => 'upload',
+                'CertName'     => $certName,
+                'SSLPub'       => $fullchain,
+                'SSLPri'       => $privkey,
             ]);
 
             return;
@@ -72,9 +72,11 @@ class CdnCertSynchronizer
 
                     return ['ok' => true, 'message' => '阿里云凭据有效（' . $list . '）'];
                 }
+                // 不带 FunctionNames（https_domain_cert_config 已不被支持）。
+                // 注意：该接口的 FunctionArgs 响应不稳定（含大证书 PEM 时常被截断），不做 HTTPS 状态解析，
+                // 部署结果以本系统部署记录与实际访问为准
                 self::client('cdn.aliyuncs.com', '2018-05-10', $config)->call('DescribeCdnDomainConfigs', [
                     'DomainName' => $cdnDomain,
-                    'FunctionNames' => 'https_domain_cert_config',
                 ]);
 
                 return ['ok' => true, 'message' => "阿里云凭据有效，域名 {$cdnDomain} 存在且可管理"];
