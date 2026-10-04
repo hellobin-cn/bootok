@@ -31,7 +31,7 @@ SQL);
         // 旧配置播种为默认凭据（幂等），存量任务挂靠
         $this->execute(<<<'SQL'
 INSERT INTO `sys_dns_account` (`title`, `provider`, `config`)
-SELECT '阿里云（默认）', 'aliyun',
+SELECT '阿里云', 'aliyun',
        CONCAT('{"access_key_id":"', (SELECT `value` FROM `sys_config` WHERE `name` = 'ssl_aliyun_key'),
               '","access_key_secret":"', (SELECT `value` FROM `sys_config` WHERE `name` = 'ssl_aliyun_secret'), '"}')
 WHERE NOT EXISTS (SELECT 1 FROM `sys_dns_account`)
