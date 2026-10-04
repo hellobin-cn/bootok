@@ -136,7 +136,15 @@
               <a-table-column title="名称">
                 <template #cell="{ record }">
                   <div class="file-name" @click="record.__isDir ? enterFolder(record.id) : previewFile(record)">
-                    <span class="file-icon" :style="{ color: iconColor(record) }">
+                    <a-image
+                      v-if="!record.__isDir && isImage(record.ext) && record.url"
+                      :src="fileUrl(record)"
+                      :width="36"
+                      :height="36"
+                      fit="cover"
+                      style="border-radius: 4px; flex: 0 0 36px"
+                    />
+                    <span v-else class="file-icon" :style="{ color: iconColor(record) }">
                       <icon-folder v-if="record.__isDir" style="font-size: 22px" />
                       <icon-image v-else-if="isImage(record.ext)" style="font-size: 20px" />
                       <icon-video-camera v-else-if="isVideo(record.ext)" style="font-size: 20px" />
@@ -298,7 +306,7 @@
       flatNodes.value
         .filter((n) => (n.parentId ?? null) === parentId)
         .map((n) => ({ key: n.id, title: n.name, id: n.id, name: n.name, parentId: n.parentId, children: mk(n.id) }));
-    treeData.value = mk(0);
+    treeData.value = [...mk(null), ...mk(0)];
   }
 
   async function loadTree() {
@@ -365,7 +373,7 @@
   async function loadFiles() {
     filesLoading.value = true;
     try {
-      const res: any = await api('POST', '/auto/attachment/rows?page=1&page_size=1000', {});
+      const res: any = await api('POST', '/auto/attachment/rows?page=1&page_size=1000', { channel_id: currentChannelId.value });
       if (res.code === '0') allAttachments.value = res.data?.data ?? [];
     } finally {
       filesLoading.value = false;
@@ -373,6 +381,13 @@
   }
 
   // ---------- 类型 ----------
+  // 附件访问地址：相对路径拼 API 前缀；CDN 绝对地址直接用
+  function fileUrl(record: any): string {
+    const u = record.url ?? "";
+    if (!u || /^https?:\/\//.test(u)) return u;
+    return (import.meta.env.VITE_API_BASE_URL as string ?? "").replace(/\/$/, "") + u;
+  }
+
   const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
   const VIDEO_EXTS = ['mp4', 'avi', 'mov', 'wmv', 'flv'];
   const AUDIO_EXTS = ['mp3', 'wav', 'flac', 'ogg'];
@@ -405,8 +420,9 @@
   const previewSrc = ref('');
 
   function previewFile(record: any) {
-    if (!record.url) return;
-    previewSrc.value = record.url;
+    const u = fileUrl(record);
+    if (!u) return;
+    previewSrc.value = u;
     previewVisible.value = true;
   }
 
@@ -554,7 +570,7 @@
 
   function downloadFile(record: any) {
     // 附件 URL 即公网/CDN 直链，新窗口打开由浏览器处理下载
-    if (record.url) window.open(record.url);
+    const u = fileUrl(record); if (u) window.open(u);
   }
 
   async function deleteFile(record: any) {
