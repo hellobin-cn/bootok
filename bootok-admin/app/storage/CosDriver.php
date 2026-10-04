@@ -158,7 +158,13 @@ class CosDriver implements StorageInterface
         $pathname = '/' . $this->encodePath($relativePath);
         $date = gmdate('D, d M Y H:i:s') . ' GMT';
         $host = $this->host();
-        $headers = $verb === 'PUT' ? 'content-length=' . strlen($body) . '&content-type=application/octet-stream&date=' . rawurlencode($date) . '&host=' . rawurlencode($host) : 'date=' . rawurlencode($date) . '&host=' . rawurlencode($host);
+        // COS 规范：HttpString 的 header 值必须 URL 编码（漏编码 content-type 的 / 曾致 SignatureDoesNotMatch）
+        $headers = $verb === 'PUT'
+            ? 'content-length=' . rawurlencode((string) strlen($body))
+                . '&content-type=' . rawurlencode('application/octet-stream')
+                . '&date=' . rawurlencode($date)
+                . '&host=' . rawurlencode($host)
+            : 'date=' . rawurlencode($date) . '&host=' . rawurlencode($host);
         $keyTime = time() - 60 . ';' . (time() + 600);
 
         [$signature, $signKey] = $this->sign(strtolower($verb), $pathname, '', $headers, $keyTime);
