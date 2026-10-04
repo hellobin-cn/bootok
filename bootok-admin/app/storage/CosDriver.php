@@ -2,6 +2,8 @@
 
 namespace app\storage;
 
+use BootOk\Http;
+use BootOk\Http\ConnectionException;
 use RuntimeException;
 use Webman\File;
 
@@ -147,7 +149,7 @@ class CosDriver implements StorageInterface
     }
 
     /**
-     * 签名并执行请求
+     * 签名并执行请求（经 bootok/http HTTP 层）
      *
      * @return string GET/HEAD 的响应体（其他动词为空串）
      */
@@ -166,28 +168,37 @@ class CosDriver implements StorageInterface
             . '&q-header-list=' . ($verb === 'PUT' ? 'content-length;content-type;date;host' : 'date;host')
             . '&q-url-param-list=&q-signature=' . $signature;
 
-        $ch = curl_init($this->scheme() . '://' . $host . $pathname);
-        $httpHeaders = ['Authorization: ' . $authorization, 'Date: ' . $date, 'Host: ' . $host];
-        if ($verb === 'PUT') {
-            $httpHeaders[] = 'Content-Type: application/octet-stream';
-        }
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST  => $verb,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_HTTPHEADER     => $httpHeaders,
-            CURLOPT_POSTFIELDS     => $verb === 'PUT' ? $body : null,
-        ]);
-        $resp = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
+        $httpHeaders = [
+            'Authorization' => $authorization,
+            'Date'          => $date,
+            'Host'          => $host,
+        ];
 
-        if ($status >= 400 || (!is_string($resp) && $status !== 204)) {
-            $detail = is_string($resp) ? substr($resp, 0, 200) : $error;
+        try {
+            if ($verb === 'PUT') {
+                // withBody 自带 Content-Type 头；content-length 由 HTTP 层按 body 计算
+                $resp = Http::withHeaders($httpHeaders)->timeout(30)
+                    ->withBody($body, 'application/octet-stream')->put($this->scheme() . '://' . $host . $pathname);
+            } else {
+                // removeBodyFormat：杜绝 DELETE/GET 被补 body 与隐式 Content-Type（签名头列表之外的隐式头虽不参与 COS 校验，保持请求最小化）
+                $http = Http::withHeaders($httpHeaders)->timeout(30)->removeBodyFormat();
+                $resp = match ($verb) {
+                    'HEAD'   => $http->head($this->scheme() . '://' . $host . $pathname),
+                    'DELETE' => $http->delete($this->scheme() . '://' . $host . $pathname),
+                    default  => $http->get($this->scheme() . '://' . $host . $pathname),
+                };
+            }
+        } catch (ConnectionException $e) {
+            throw new RuntimeException("COS {$verb} {$relativePath} 传输失败：" . $e->getMessage());
+        }
+
+        $status = $resp->status();
+        if ($status >= 400) {
+            $detail = mb_substr(strip_tags($resp->body()), 0, 900);
             throw new RuntimeException("COS {$verb} {$relativePath} 失败：HTTP {$status} {$detail}");
         }
 
-        return is_string($resp) ? $resp : '';
+        return $verb === 'GET' ? $resp->body() : '';
     }
 
     /**

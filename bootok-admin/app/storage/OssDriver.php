@@ -2,6 +2,8 @@
 
 namespace app\storage;
 
+use BootOk\Http;
+use BootOk\Http\ConnectionException;
 use RuntimeException;
 use Webman\File;
 
@@ -133,7 +135,7 @@ class OssDriver implements StorageInterface
     }
 
     /**
-     * 签名请求并执行
+     * 签名请求并执行（经 bootok/http HTTP 层）
      *
      * @return string GET/HEAD 的响应体（其他动词为空串）
      */
@@ -150,32 +152,39 @@ class OssDriver implements StorageInterface
             . "/{$this->bucket}{$path}";
         $signature = base64_encode(hash_hmac('sha1', $stringToSign, $this->accessKeySecret, true));
 
-        $ch = curl_init($this->baseUrl($path));
         $headers = [
-            'Date: ' . $date,
-            'Authorization: OSS ' . $this->accessKeyId . ':' . $signature,
+            'Date'         => $date,
+            'Authorization' => 'OSS ' . $this->accessKeyId . ':' . $signature,
         ];
-        if ($body !== '' && $verb === 'PUT') {
-            $headers[] = 'Content-MD5: ' . $contentMd5;
-            $headers[] = 'Content-Type: application/octet-stream';
+        if ($verb === 'PUT') {
+            $headers['Content-MD5'] = $contentMd5;
         }
-        curl_setopt_array($ch, [
-            CURLOPT_CUSTOMREQUEST => $verb,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_POSTFIELDS => $verb === 'PUT' ? $body : null,
-        ]);
-        $resp = curl_exec($ch);
-        $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $error = curl_error($ch);
 
-        if ($status >= 400 || (!is_string($resp) && $status !== 204)) {
-            $detail = is_string($resp) ? substr(strip_tags($resp), 0, 200) : $error;
+        try {
+            if ($verb === 'PUT') {
+                // withBody 自带 Content-Type 头（参与签名，勿在 withHeaders 重复声明）
+                $resp = Http::withHeaders($headers)->timeout(30)
+                    ->withBody($body, $contentType)->put($this->baseUrl($path));
+            } else {
+                // removeBodyFormat：杜绝 DELETE/GET 被补 body 与隐式 Content-Type（参与签名计算）
+                $http = Http::withHeaders($headers)->timeout(30)->removeBodyFormat();
+                $resp = match ($verb) {
+                    'HEAD'   => $http->head($this->baseUrl($path)),
+                    'DELETE' => $http->delete($this->baseUrl($path)),
+                    default  => $http->get($this->baseUrl($path)),
+                };
+            }
+        } catch (ConnectionException $e) {
+            throw new RuntimeException("OSS {$verb} {$relativePath} 传输失败：" . $e->getMessage());
+        }
+
+        $status = $resp->status();
+        if ($status >= 400) {
+            $detail = mb_substr(strip_tags($resp->body()), 0, 900);
             throw new RuntimeException("OSS {$verb} {$relativePath} 失败：HTTP {$status} {$detail}");
         }
 
-        return is_string($resp) ? $resp : '';
+        return $verb === 'GET' ? $resp->body() : '';
     }
 
     private function baseUrl(string $path): string
