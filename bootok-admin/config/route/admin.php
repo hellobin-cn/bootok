@@ -9,6 +9,9 @@ use app\controller\admin\AdminController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\DnsAccountController;
 use app\controller\admin\IndexController;
+use app\controller\admin\MailChannelController;
+use app\controller\admin\MailLogController;
+use app\controller\admin\MailTemplateController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
 use app\controller\admin\SslTaskController;
@@ -61,6 +64,12 @@ Route::group('', function () {
         // 存储渠道配置自检（CRUD 走 /auto/storage-channel）
         Route::post('/storage/channel/test', [StorageChannelController::class, 'testConfig']);
         Route::post('/storage/channel/{id:\d+}/test', [StorageChannelController::class, 'test']);
+        // 邮件：渠道测试 / 模板预览与测试发送 / 发送记录重发（CRUD 走 /auto/mail-*）
+        Route::post('/mail/channel/test', [MailChannelController::class, 'testConfig']);
+        Route::post('/mail/channel/{id:\d+}/test', [MailChannelController::class, 'test']);
+        Route::post('/mail/template/preview', [MailTemplateController::class, 'preview']);
+        Route::post('/mail/template/{id:\d+}/send-test', [MailTemplateController::class, 'sendTest']);
+        Route::post('/mail/log/{id:\d+}/resend', [MailLogController::class, 'resend']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
         // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前
