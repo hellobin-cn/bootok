@@ -18,9 +18,8 @@ final class ChannelFactory
 
         return match ($channel->type) {
             'local' => new LocalDriver($config),
-            // 阶段 2/3 落地：纯 PHP 签名实现（无 SDK），config: bucket/endpoint/access_key_id/access_key_secret
-            'oss'   => throw new RuntimeException('阿里云 OSS 驱动尚未接入，敬请期待'),
-            'cos'   => throw new RuntimeException('腾讯云 COS 驱动尚未接入，敬请期待'),
+            'oss'   => new OssDriver($config),
+            'cos'   => new CosDriver($config),
             default => throw new RuntimeException("未知存储渠道类型：{$channel->type}"),
         };
     }
