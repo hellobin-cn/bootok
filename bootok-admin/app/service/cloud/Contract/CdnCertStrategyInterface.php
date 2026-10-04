@@ -1,6 +1,6 @@
 <?php
 
-namespace app\cloud\Contract;
+namespace app\service\cloud\contract;
 
 /**
  * CDN 证书部署策略契约

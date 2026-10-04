@@ -1,8 +1,8 @@
 <?php
 
-namespace app\service;
+namespace app\service\ssl;
 
-use app\cloud\CdnCertManager;
+use app\service\cloud\CdnCertManager;
 use app\model\SslDeploy;
 use app\model\SslTask;
 use phpseclib3\Crypt\PublicKeyLoader;

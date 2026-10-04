@@ -4,7 +4,7 @@ namespace app\controller\admin;
 
 use app\controller\Controller;
 use app\model\SslDeploy;
-use app\service\SslDeployService;
+use app\service\ssl\SslDeployService;
 use support\Request;
 use support\Response;
 

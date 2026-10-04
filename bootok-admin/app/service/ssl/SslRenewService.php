@@ -1,6 +1,6 @@
 <?php
 
-namespace app\service;
+namespace app\service\ssl;
 
 use app\model\DnsAccount;
 use app\model\SslTask;

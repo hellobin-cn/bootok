@@ -1,8 +1,8 @@
 <?php
 
-namespace app\cloud;
+namespace app\service\cloud;
 
-use app\cloud\Contract\CdnCertStrategyInterface;
+use app\service\cloud\contract\CdnCertStrategyInterface;
 use RuntimeException;
 
 /**

@@ -3,7 +3,7 @@
 namespace app\controller\admin;
 
 use app\controller\Controller;
-use app\storage\ChannelManager;
+use app\service\storage\ChannelManager;
 use DI\Attribute\Inject;
 use support\Request;
 use support\Response;

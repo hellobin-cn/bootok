@@ -1,9 +1,9 @@
 <?php
 
-namespace app\cloud\Strategy;
+namespace app\service\cloud\strategy;
 
-use app\cloud\AliyunClient;
-use app\cloud\Contract\CdnCertStrategyInterface;
+use app\service\cloud\AliyunClient;
+use app\service\cloud\contract\CdnCertStrategyInterface;
 use RuntimeException;
 
 /**

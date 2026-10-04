@@ -1,6 +1,6 @@
 <?php
 
-namespace app\cloud\Contract;
+namespace app\service\cloud\contract;
 
 /**
  * 云平台开放 API 客户端契约

@@ -1,6 +1,6 @@
 <?php
 
-namespace app\storage;
+namespace app\service\storage;
 
 use RuntimeException;
 use Webman\File;

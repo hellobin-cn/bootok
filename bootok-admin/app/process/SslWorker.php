@@ -4,7 +4,7 @@ namespace app\process;
 
 use app\model\DnsAccount;
 use app\model\SslTask;
-use app\service\SslDeployService;
+use app\service\ssl\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
 use support\Container;

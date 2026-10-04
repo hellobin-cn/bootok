@@ -1,8 +1,8 @@
 <?php
 
-namespace app\cloud;
+namespace app\service\cloud;
 
-use app\cloud\Contract\CloudClientInterface;
+use app\service\cloud\contract\CloudClientInterface;
 use RuntimeException;
 
 /**

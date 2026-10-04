@@ -14,7 +14,7 @@ Route::get('/storage/{path:.+}', function ($request, $path) {
     if (str_contains($path, '..')) {
         return response('not found', 404);
     }
-    $content = support\Container::get(app\storage\ChannelManager::class)->default()->get($path);
+    $content = support\Container::get(app\service\storage\ChannelManager::class)->default()->get($path);
     if ($content === null) {
         return response('not found', 404);
     }

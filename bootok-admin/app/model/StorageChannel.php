@@ -3,7 +3,7 @@
 namespace app\model;
 
 use app\attribute\AutoResource;
-use app\storage\ChannelManager;
+use app\service\storage\ChannelManager;
 
 /**
  * 存储渠道（附件的存储后端：local/oss/cos，可绑定 CDN）

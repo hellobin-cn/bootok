@@ -1,11 +1,11 @@
 <?php
 
-use app\cloud\CdnCertManager;
-use app\cloud\Contract\CloudClientInterface;
-use app\cloud\Strategy\AliyunCdnCertStrategy;
-use app\cloud\Strategy\TencentCdnCertStrategy;
-use app\storage\ChannelManager;
-use app\storage\StorageInterface;
+use app\service\cloud\CdnCertManager;
+use app\service\cloud\contract\CloudClientInterface;
+use app\service\cloud\strategy\AliyunCdnCertStrategy;
+use app\service\cloud\strategy\TencentCdnCertStrategy;
+use app\service\storage\ChannelManager;
+use app\service\storage\StorageInterface;
 
 /**
  * PHP-DI 容器定义

@@ -4,7 +4,7 @@ namespace app\controller\admin;
 
 use app\controller\Controller;
 use app\model\StorageChannel;
-use app\storage\ChannelManager;
+use app\service\storage\ChannelManager;
 use support\Request;
 use support\Response;
 
@@ -45,7 +45,7 @@ class StorageChannelController extends Controller
         }
         $channel = new StorageChannel(['type' => $type, 'config' => $config]);
         try {
-            $result = \app\storage\ChannelFactory::build($channel)->test();
+            $result = \app\service\storage\ChannelFactory::build($channel)->test();
         } catch (\Throwable $e) {
             return $this->error('测试失败：' . $e->getMessage());
         }

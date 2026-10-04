@@ -3,7 +3,7 @@
 namespace app\service;
 
 use app\model\Attachment;
-use app\storage\ChannelManager;
+use app\service\storage\ChannelManager;
 
 /**
  * 附件访问服务：URL 生成与对象删除的统一出口

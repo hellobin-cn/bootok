@@ -1,9 +1,9 @@
 <?php
 
-namespace app\cloud\Strategy;
+namespace app\service\cloud\strategy;
 
-use app\cloud\Contract\CdnCertStrategyInterface;
-use app\cloud\TencentClient;
+use app\service\cloud\contract\CdnCertStrategyInterface;
+use app\service\cloud\TencentClient;
 use RuntimeException;
 
 /**
