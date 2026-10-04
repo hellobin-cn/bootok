@@ -11,7 +11,7 @@ const CONTENT: AppRouteRecordRaw = {
     title: '内容管理',
     requiresAuth: true,
     icon: 'icon-bookmark',
-    order: 3,
+    order: 10,
   },
   children: [
     {

@@ -10,20 +10,9 @@ const MAIL: AppRouteRecordRaw = {
     title: '邮件管理',
     requiresAuth: true,
     icon: 'icon-email',
-    order: 7,
+    order: 11,
   },
   children: [
-    {
-      path: 'channel',
-      name: 'MailChannel',
-      component: () => import('@/views/mail/channel.vue'),
-      meta: {
-        locale: 'menu.mail.channel',
-        title: '邮件渠道',
-        requiresAuth: true,
-        perms: ['mail-channel.rows'],
-      },
-    },
     {
       path: 'template',
       name: 'MailTemplate',
@@ -33,6 +22,17 @@ const MAIL: AppRouteRecordRaw = {
         title: '邮件模板',
         requiresAuth: true,
         perms: ['mail-template.rows'],
+      },
+    },
+    {
+      path: 'channel',
+      name: 'MailChannel',
+      component: () => import('@/views/mail/channel.vue'),
+      meta: {
+        locale: 'menu.mail.channel',
+        title: '邮件渠道',
+        requiresAuth: true,
+        perms: ['mail-channel.rows'],
       },
     },
     {

@@ -10,7 +10,7 @@ const AUTH: AppRouteRecordRaw = {
     title: '权限管理',
     requiresAuth: true,
     icon: 'icon-safe',
-    order: 2,
+    order: 20,
   },
   children: [
     {

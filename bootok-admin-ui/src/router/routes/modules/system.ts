@@ -10,7 +10,7 @@ const SYSTEM: AppRouteRecordRaw = {
     title: '系统管理',
     requiresAuth: true,
     icon: 'icon-settings',
-    order: 1,
+    order: 21,
   },
   children: [
     {

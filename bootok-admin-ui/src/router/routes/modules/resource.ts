@@ -10,7 +10,7 @@ const RESOURCE: AppRouteRecordRaw = {
     title: '附件管理',
     requiresAuth: true,
     icon: 'icon-cloud',
-    order: 5,
+    order: 13,
   },
   children: [
     {

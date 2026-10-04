@@ -10,7 +10,7 @@ const SECURITY: AppRouteRecordRaw = {
     title: '安全审计',
     requiresAuth: true,
     icon: 'icon-safe',
-    order: 6,
+    order: 22,
   },
   children: [
     {

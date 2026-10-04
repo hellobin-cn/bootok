@@ -10,7 +10,7 @@ const SSL: AppRouteRecordRaw = {
     title: 'SSL 证书',
     requiresAuth: true,
     icon: 'icon-safe',
-    order: 4,
+    order: 12,
   },
   children: [
     {
