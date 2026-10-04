@@ -159,8 +159,13 @@
         <a-form-item label="名称" required>
           <a-input v-model="deployForm.title" placeholder="如：web-01 nginx" />
         </a-form-item>
-        <a-form-item label="绑定域名" required help="证书覆盖该域名（含通配符形态）时自动触发部署">
-          <a-input v-model="deployForm.domain" placeholder="haoduoya.cc" />
+        <a-form-item label="绑定域名" required help="从已签发证书的域名中选择，部署时证书与私钥取自对应任务">
+          <a-select
+            v-model="deployForm.domain"
+            :options="deployDomainOptions"
+            :placeholder="certDomainOptions.length ? '选择已签发证书的域名' : '暂无已签发证书，请先签发'"
+            allow-search
+          />
         </a-form-item>
         <a-form-item label="部署模式" required help="本机：直接落盘执行；远程：SSH 免密登录">
           <a-radio-group v-model="deployForm.mode">
@@ -201,7 +206,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { onMounted, ref } from 'vue';
+  import { computed, onMounted, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
   import BaseApi from '@/api/base';
@@ -324,6 +329,28 @@
       config: { host: '', port: 22, username: '', privateKey: '', certPath: '', keyPath: '', reloadCmd: '' },
     };
   }
+
+  // 绑定域名只能从已签发证书中选择（*.x 归并为基础域名），保证绑定的一定是有真实证书的域名
+  const certDomainOptions = computed(() => {
+    const set = new Set<string>();
+    for (const r of rows.value) {
+      if (r.status !== 'issued') continue;
+      for (const d of parseDomains(r)) {
+        set.add(d.replace(/^\*\./, ''));
+      }
+    }
+    return Array.from(set).map((d) => ({ label: d, value: d }));
+  });
+
+  // 编辑时旧绑定域名可能已不在选项中（证书被删），补进选项避免显示空
+  const deployDomainOptions = computed(() => {
+    const opts = [...certDomainOptions.value];
+    const current = deployForm.value.domain;
+    if (current && !opts.some((o) => o.value === current)) {
+      opts.unshift({ label: current, value: current });
+    }
+    return opts;
+  });
 
   async function loadDeploys() {
     deployLoading.value = true;
