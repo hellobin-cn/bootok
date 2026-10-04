@@ -7,6 +7,7 @@
 
 use app\controller\admin\AdminController;
 use app\controller\admin\ConfigController;
+use app\controller\admin\DnsAccountController;
 use app\controller\admin\IndexController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
@@ -54,6 +55,8 @@ Route::group('', function () {
         // SSL 部署目标：立即部署 / 连通性测试（CRUD 走 /auto/ssl-deploy）
         Route::post('/ssl/deploy/{id:\d+}/run', [SslDeployController::class, 'run']);
         Route::post('/ssl/deploy/{id:\d+}/test', [SslDeployController::class, 'test']);
+        // DNS 凭据连通性测试（CRUD 走 /auto/dns-account）
+        Route::post('/ssl/dns-account/{id:\d+}/test', [DnsAccountController::class, 'test']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
         // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前

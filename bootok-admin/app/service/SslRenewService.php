@@ -27,6 +27,7 @@ class SslRenewService
         if ($task->dns_account_id) {
             $account = DnsAccount::find($task->dns_account_id);
             if ($account !== null) {
+
                 return $account->provider();
             }
         }

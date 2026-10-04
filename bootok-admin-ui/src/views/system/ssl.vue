@@ -134,9 +134,10 @@
               <a-tag>{{ providerName(record.provider) }}</a-tag>
             </template>
           </a-table-column>
-          <a-table-column title="操作" :width="180">
+          <a-table-column title="操作" :width="230">
             <template #cell="{ record }">
               <a-space>
+                <a-button size="mini" :loading="dnsTestingId === record.id" @click="testDns(record.id)">测试</a-button>
                 <a-button size="mini" type="outline" @click="openDns(record)" v-permission="'dns-account.edit'">编辑</a-button>
                 <a-popconfirm content="确认删除该凭据？" type="warning" @ok="deleteDns(record.id)">
                   <a-button size="mini" status="danger" v-permission="'dns-account.delete'">删除</a-button>
@@ -198,7 +199,7 @@
         <a-form-item label="服务商" required>
           <a-radio-group v-model="dnsForm.provider" :disabled="!!dnsForm.id">
             <a-radio value="aliyun">阿里云 DNS</a-radio>
-            <a-radio value="dnspod">腾讯 DNSPod</a-radio>
+            <a-radio value="tencent">腾讯云 DNS</a-radio>
           </a-radio-group>
         </a-form-item>
         <template v-if="dnsForm.provider === 'aliyun'">
@@ -210,11 +211,11 @@
           </a-form-item>
         </template>
         <template v-else>
-          <a-form-item label="DNSPod ID" required>
-            <a-input v-model="dnsForm.podId" placeholder="DNSPod Token ID" />
+          <a-form-item label="SecretId" required>
+            <a-input v-model="dnsForm.secretId" placeholder="腾讯云 API 密钥 SecretId" />
           </a-form-item>
-          <a-form-item label="DNSPod Token" required>
-            <a-input-password v-model="dnsForm.podToken" placeholder="DNSPod Token" />
+          <a-form-item label="SecretKey" required>
+            <a-input-password v-model="dnsForm.secretKey" placeholder="腾讯云 API 密钥 SecretKey" />
           </a-form-item>
         </template>
       </a-form>
@@ -537,14 +538,15 @@
   const dnsLoading = ref(false);
   const dnsVisible = ref(false);
   const dnsSaving = ref(false);
+  const dnsTestingId = ref<number | null>(null);
   const dnsForm = ref(emptyDnsForm());
 
   function emptyDnsForm() {
-    return { id: 0, title: '', provider: 'aliyun', accessKeyId: '', accessKeySecret: '', podId: '', podToken: '' };
+    return { id: 0, title: '', provider: 'aliyun', accessKeyId: '', accessKeySecret: '', secretId: '', secretKey: '' };
   }
 
   function providerName(provider: string): string {
-    return provider === 'dnspod' ? '腾讯 DNSPod' : '阿里云 DNS';
+    return provider === 'tencent' ? '腾讯云 DNS' : '阿里云 DNS';
   }
 
   const dnsAccountOptions = computed(() =>
@@ -564,16 +566,14 @@
   function openDns(record?: any) {
     if (record) {
       const config = record.config ?? {};
-      // dnspod 的 login_token（id,token）拆成两个输入框
-      const [podId = '', podToken = ''] = String(config.loginToken ?? '').split(',');
       dnsForm.value = {
         id: record.id,
         title: record.title,
         provider: record.provider,
         accessKeyId: config.accessKeyId ?? '',
         accessKeySecret: config.accessKeySecret ?? '',
-        podId,
-        podToken,
+        secretId: config.secretId ?? '',
+        secretKey: config.secretKey ?? '',
       };
     } else {
       dnsForm.value = emptyDnsForm();
@@ -587,8 +587,8 @@
       Message.error('请填写名称');
       return;
     }
-    const config = f.provider === 'dnspod'
-      ? { login_token: `${f.podId.trim()},${f.podToken.trim()}` }
+    const config = f.provider === 'tencent'
+      ? { secret_id: f.secretId.trim(), secret_key: f.secretKey.trim() }
       : { access_key_id: f.accessKeyId.trim(), access_key_secret: f.accessKeySecret.trim() };
     dnsSaving.value = true;
     try {
@@ -609,6 +609,24 @@
     if (res.code === '0') {
       Message.success('已删除');
       loadDnsAccounts();
+    }
+  }
+
+  async function testDns(id: number) {
+    dnsTestingId.value = id;
+    try {
+      const res: any = await axios.post(`/ssl/dns-account/${id}/test`, {}, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 30000,
+      });
+      if (res.code === '0') {
+        Message.success(res.data?.message || '凭据有效');
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '测试失败');
+    } finally {
+      dnsTestingId.value = null;
     }
   }
 

@@ -5,7 +5,7 @@ namespace app\model;
 use app\attribute\AutoResource;
 use BootOk\Acme\Dns\AliyunProvider;
 use BootOk\Acme\Dns\DnsProvider;
-use BootOk\Acme\Dns\DnspodProvider;
+use BootOk\Acme\Dns\TencentProvider;
 
 /**
  * DNS 凭据（DNS 服务商鉴权账号）
@@ -28,8 +28,8 @@ class DnsAccount extends Model
     public static function providers(): array
     {
         return [
-            'aliyun' => '阿里云 DNS',
-            'dnspod' => '腾讯 DNSPod',
+            'aliyun'  => '阿里云 DNS',
+            'tencent' => '腾讯云 DNS',
         ];
     }
 
@@ -45,7 +45,7 @@ class DnsAccount extends Model
         if (!array_key_exists($this->provider ?? '', self::providers())) {
             return 'DNS 服务商不支持';
         }
-        $required = $this->provider === 'dnspod' ? ['login_token'] : ['access_key_id', 'access_key_secret'];
+        $required = $this->provider === 'tencent' ? ['secret_id', 'secret_key'] : ['access_key_id', 'access_key_secret'];
         foreach ($required as $field) {
             if (trim((string) ($config[$field] ?? '')) === '') {
                 return "凭据项 {$field} 不能为空";
@@ -62,8 +62,8 @@ class DnsAccount extends Model
     public function provider(): DnsProvider
     {
         return match ($this->provider) {
-            'dnspod' => new DnspodProvider($this->config ?? []),
-            default  => new AliyunProvider($this->config ?? []),
+            'tencent' => new TencentProvider($this->config ?? []),
+            default   => new AliyunProvider($this->config ?? []),
         };
     }
 }
