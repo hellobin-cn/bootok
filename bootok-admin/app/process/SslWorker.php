@@ -7,6 +7,7 @@ use app\model\SslTask;
 use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
+use support\Container;
 use support\Log;
 use Workerman\Timer;
 
@@ -18,6 +19,10 @@ use Workerman\Timer;
  */
 class SslWorker
 {
+    public function __construct(private readonly SslDeployService $deploys)
+    {
+    }
+
     public function onWorkerStart(): void
     {
         Timer::add(2, function (): void {
@@ -77,7 +82,7 @@ class SslWorker
         $task->save();
 
         // 签发成功即分发部署（逐目标容错），结果写入过程日志
-        $deploy = SslDeployService::dispatchForTask($task);
+        $deploy = $this->deploys->dispatchForTask($task);
         $this->logStage(
             $task,
             'deploy',

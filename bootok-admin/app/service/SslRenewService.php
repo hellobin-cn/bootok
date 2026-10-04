@@ -4,7 +4,6 @@ namespace app\service;
 
 use app\model\DnsAccount;
 use app\model\SslTask;
-use app\service\SslDeployService;
 use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
 use BootOk\Acme\Dns\AliyunProvider;
@@ -19,6 +18,10 @@ class SslRenewService
 {
     private const RENEW_WINDOW_DAYS = 30;
 
+    public function __construct(private readonly SslDeployService $deploys)
+    {
+    }
+
     /**
      * 按任务回溯 DNS 凭据；历史任务无凭据引用时回退 sys_config 旧配置
      */
@@ -27,7 +30,6 @@ class SslRenewService
         if ($task->dns_account_id) {
             $account = DnsAccount::find($task->dns_account_id);
             if ($account !== null) {
-
                 return $account->provider();
             }
         }
@@ -48,7 +50,7 @@ class SslRenewService
      *
      * @return array{checked: int, renewed: int, failed: int}
      */
-    public static function renewDue(): array
+    public function renewDue(): array
     {
         $checked = 0;
         $renewed = 0;
@@ -83,7 +85,7 @@ class SslRenewService
                 $row->save();
                 $renewed++;
                 // 续期成功后同样分发部署（逐目标容错，内部不抛出）
-                SslDeployService::dispatchForTask($row);
+                $this->deploys->dispatchForTask($row);
                 Log::channel('json')->info('ssl.renewed', ['id' => $row->id, 'expires_at' => $row->expires_at]);
             } catch (\Throwable $e) {
                 $failed++;

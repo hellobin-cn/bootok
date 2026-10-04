@@ -2,6 +2,7 @@
 
 namespace app\cloud;
 
+use app\cloud\Contract\CloudClientInterface;
 use RuntimeException;
 
 /**
@@ -11,7 +12,7 @@ use RuntimeException;
  * 请求形态与官方 SDK 对齐：Content-Type 为纯 application/json（不带 charset），
  * 公共参数 X-TC-* 走请求头，Authorization 承载网关鉴权。
  */
-class TencentClient
+class TencentClient implements CloudClientInterface
 {
     public function __construct(
         private readonly string $host,          // 如 cdn.tencentcloudapi.com

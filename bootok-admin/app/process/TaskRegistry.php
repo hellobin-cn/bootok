@@ -51,7 +51,7 @@ class TaskRegistry
                 'ssl.renew_check' => [
                     'title'  => 'SSL 证书续期巡检（到期前 30 天自动重签已签发证书）',
                     'action' => function () {
-                        \app\service\SslRenewService::renewDue();
+                        \support\Container::get(\app\service\SslRenewService::class)->renewDue();
                     },
                 ],
                 'system.health_check' => [

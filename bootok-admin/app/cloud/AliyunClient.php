@@ -2,6 +2,7 @@
 
 namespace app\cloud;
 
+use app\cloud\Contract\CloudClientInterface;
 use RuntimeException;
 
 /**
@@ -11,7 +12,7 @@ use RuntimeException;
  * （参数排序 → URL 编码拼接 → GET&%2F& 待签 → HMAC-SHA1）。
  * 经 bootok/http HTTP 层发送：大参数（如证书 PEM）走 POST 表单。
  */
-class AliyunClient
+class AliyunClient implements CloudClientInterface
 {
     public function __construct(
         private readonly string $endpoint,      // 如 cdn.aliyuncs.com

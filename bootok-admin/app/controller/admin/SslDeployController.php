@@ -13,6 +13,11 @@ use support\Response;
  */
 class SslDeployController extends Controller
 {
+    public function __construct(private readonly SslDeployService $deploys)
+    {
+        parent::__construct();
+    }
+
     /**
      * 立即部署：对绑定域名下最近一次签发成功的证书重新投递
      * POST /ssl/deploy/{id}/run
@@ -24,7 +29,7 @@ class SslDeployController extends Controller
             return $this->error('部署目标不存在', '4004');
         }
         try {
-            SslDeployService::runNow($target);
+            $this->deploys->runNow($target);
 
             return $this->success([
                 'status'      => $target->last_status,
@@ -45,7 +50,7 @@ class SslDeployController extends Controller
         if ($target === null) {
             return $this->error('部署目标不存在', '4004');
         }
-        $result = SslDeployService::test($target);
+        $result = $this->deploys->test($target);
 
         return $result['ok'] ? $this->success($result) : $this->error($result['message']);
     }

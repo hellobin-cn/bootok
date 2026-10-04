@@ -2,7 +2,7 @@
 
 namespace app\service;
 
-use app\cloud\CdnCertSynchronizer;
+use app\cloud\CdnCertManager;
 use app\model\SslDeploy;
 use app\model\SslTask;
 use phpseclib3\Crypt\PublicKeyLoader;
@@ -18,12 +18,16 @@ use support\Log;
  */
 class SslDeployService
 {
+    public function __construct(private readonly CdnCertManager $cdnCerts)
+    {
+    }
+
     /**
      * 签发/续期成功后分发：对所有启用且域名匹配的目标执行部署（逐个容错，不抛出）
      *
      * @return array{matched: int, success: int, failed: int}
      */
-    public static function dispatchForTask(SslTask $task): array
+    public function dispatchForTask(SslTask $task): array
     {
         $domains = json_decode((string) $task->domains, true) ?: [];
         $matched = 0;
@@ -35,16 +39,16 @@ class SslDeployService
         }
         $targets = SslDeploy::where('enabled', true)->get();
         foreach ($targets as $target) {
-            if (!self::domainMatched($domains, $target->domain)) {
+            if (!$this->domainMatched($domains, (string) $target->domain)) {
                 continue;
             }
             $matched++;
             try {
-                self::execute($target, (string) $task->fullchain_pem, (string) $task->cert_key_pem);
-                self::record($target, 'success');
+                $this->execute($target, (string) $task->fullchain_pem, (string) $task->cert_key_pem);
+                $this->record($target, 'success');
                 $success++;
             } catch (\Throwable $e) {
-                self::record($target, 'failed', $e->getMessage());
+                $this->record($target, 'failed', $e->getMessage());
                 $failed++;
                 Log::error('ssl.deploy_failed', ['deploy_id' => $target->id, 'task_id' => $task->id, 'error' => $e->getMessage()]);
             }
@@ -56,14 +60,14 @@ class SslDeployService
     /**
      * 立即部署：对目标绑定域名下最近一次签发成功的任务重新投递
      */
-    public static function runNow(SslDeploy $target): void
+    public function runNow(SslDeploy $target): void
     {
-        $task = self::latestTaskFor($target->domain);
+        $task = $this->latestTaskFor((string) $target->domain);
         if ($task === null) {
             throw new \RuntimeException('该域名下暂无已签发的证书任务');
         }
-        self::execute($target, (string) $task->fullchain_pem, (string) $task->cert_key_pem);
-        self::record($target, 'success');
+        $this->execute($target, (string) $task->fullchain_pem, (string) $task->cert_key_pem);
+        $this->record($target, 'success');
     }
 
     /**
@@ -74,14 +78,14 @@ class SslDeployService
      *
      * @return array{ok: bool, message: string}
      */
-    public static function test(SslDeploy $target): array
+    public function test(SslDeploy $target): array
     {
         $config = $target->config ?? [];
         if ($target->channel === 'cdn') {
-            return CdnCertSynchronizer::probe((string) $target->mode, $config);
+            return $this->cdnCerts->probe((string) $target->mode, $config);
         }
         if ($target->mode === 'remote') {
-            $ssh = self::sshSession($config);
+            $ssh = $this->sshSession($config);
             $output = $ssh->exec('echo bootok-deploy-ok');
             $ssh->disconnect();
 
@@ -105,7 +109,7 @@ class SslDeployService
      *
      * @param string[] $domains
      */
-    private static function domainMatched(array $domains, string $domain): bool
+    private function domainMatched(array $domains, string $domain): bool
     {
         foreach ($domains as $d) {
             if ($d === $domain || $d === '*.' . $domain) {
@@ -116,12 +120,12 @@ class SslDeployService
         return false;
     }
 
-    private static function latestTaskFor(string $domain): ?SslTask
+    private function latestTaskFor(string $domain): ?SslTask
     {
         $tasks = SslTask::where('status', 'issued')->orderByDesc('id')->get();
         foreach ($tasks as $task) {
             $domains = json_decode((string) $task->domains, true) ?: [];
-            if (self::domainMatched($domains, $domain) && (string) $task->fullchain_pem !== '') {
+            if ($this->domainMatched($domains, $domain) && (string) $task->fullchain_pem !== '') {
                 return $task;
             }
         }
@@ -130,17 +134,17 @@ class SslDeployService
     }
 
     /**
-     * 按模式执行投递：落盘证书 + 执行 reload 命令
+     * 按通道执行投递
      *
      * @param array<string, string> $config
      */
-    private static function execute(SslDeploy $target, string $fullchain, string $privkey): void
+    private function execute(SslDeploy $target, string $fullchain, string $privkey): void
     {
         $config = $target->config ?? [];
 
         // 云 CDN 通道：证书推到云 CDN 域名的 HTTPS 配置（无需路径与 reload 概念）
         if ($target->channel === 'cdn') {
-            CdnCertSynchronizer::deploy((string) $target->mode, $config, (string) $target->domain, $fullchain, $privkey);
+            $this->cdnCerts->deploy((string) $target->mode, $config, (string) $target->domain, $fullchain, $privkey);
 
             return;
         }
@@ -150,7 +154,7 @@ class SslDeployService
         $reloadCmd = (string) ($config['reload_cmd'] ?? '');
 
         if ($target->mode === 'remote') {
-            $ssh = self::sshSession($config);
+            $ssh = $this->sshSession($config);
             $sftp = new SFTP((string) $config['host'], (int) ($config['port'] ?? 22), 30);
             if (!$sftp->login((string) $config['username'], PublicKeyLoader::load((string) $config['private_key']))) {
                 $ssh->disconnect();
@@ -187,13 +191,13 @@ class SslDeployService
                 @chmod($path, 0600);
             }
         }
-        [$exit, $output] = self::runCommand($reloadCmd);
+        [$exit, $output] = $this->runCommand($reloadCmd);
         if ($exit !== 0) {
             throw new \RuntimeException("reload 命令退出码 {$exit}：" . mb_substr(trim($output), 0, 300));
         }
     }
 
-    private static function sshSession(array $config): SSH2
+    private function sshSession(array $config): SSH2
     {
         $ssh = new SSH2((string) $config['host'], (int) ($config['port'] ?? 22), 30);
         if (!$ssh->login((string) $config['username'], PublicKeyLoader::load((string) $config['private_key']))) {
@@ -208,7 +212,7 @@ class SslDeployService
      *
      * @return array{0: int, 1: string}
      */
-    private static function runCommand(string $cmd): array
+    private function runCommand(string $cmd): array
     {
         $pipes = [];
         $process = proc_open($cmd, [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
@@ -223,7 +227,7 @@ class SslDeployService
         return [(int) $exit, (string) $output];
     }
 
-    private static function record(SslDeploy $target, string $status, string $error = ''): void
+    private function record(SslDeploy $target, string $status, string $error = ''): void
     {
         $target->last_status = $status;
         $target->last_deployed_at = date('Y-m-d H:i:s');
