@@ -69,7 +69,7 @@
     @ok="submitDeploy"
     :ok-loading="deploySaving"
   >
-    <a-form :model="deployForm" class="form-deploy">
+    <a-form :model="deployForm" class="form-deploy" label-align="right" auto-label-width>
       <a-form-item label="名称" required>
         <a-input v-model="deployForm.title" placeholder="如：web-01 nginx" />
       </a-form-item>
@@ -357,15 +357,3 @@
   });
 </script>
 
-<style scoped>
-  .form-deploy :deep(.arco-form-item-label-col) {
-    flex: 0 0 auto;
-    width: 170px;
-    max-width: 170px;
-  }
-  .form-deploy :deep(.arco-form-item-wrapper-col) {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: 100%;
-  }
-</style>

@@ -68,7 +68,7 @@
       :ok-loading="issuing"
       ok-text="开始签发（后台执行）"
     >
-      <a-form v-if="!issueTaskId" :model="issueForm" class="form-issue">
+      <a-form v-if="!issueTaskId" :model="issueForm" class="form-issue" label-align="right" auto-label-width>
         <a-form-item label="域名" required help="多个域名用逗号或换行分隔，支持通配符（如 *.haoduoya.cc）">
           <a-textarea
             v-model="issueForm.domains"
@@ -327,22 +327,6 @@
   }
 </style>
 
-<style scoped>
-  .form-issue :deep(.arco-form-item-label-col) {
-    flex: 0 0 auto;
-    width: 110px;
-    max-width: 110px;
-  }
-  .form-issue :deep(.arco-form-item-wrapper-col) {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: 100%;
-  }
-  .form-issue :deep(.arco-form-item-label-col),
-  .form-issue :deep(.arco-form-item-wrapper-col) {
-    flex-basis: auto;
-  }
-</style>
 
 <style scoped>
   .issue-steps :deep(.arco-steps-item-title) {

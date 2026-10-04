@@ -43,7 +43,7 @@
       :mask-closable="false"
       @before-ok="handleOk"
     >
-      <a-form :model="form" class="form-template">
+      <a-form :model="form" class="form-template" label-align="right" auto-label-width>
         <a-form-item label="标识" required help="业务引用键，小写字母开头 a-z0-9_，如 verify_code；保存后勿再改动">
           <a-input v-model="form.code" :disabled="!!form.id" placeholder="verify_code" />
         </a-form-item>
@@ -82,7 +82,7 @@
 
     <!-- 发送测试弹窗 -->
     <a-modal v-model:visible="testVisible" title="发送测试邮件" :width="440" @before-ok="handleSendTest" :mask-closable="false">
-      <a-form>
+      <a-form :model="{ testTo }">
         <a-form-item label="收件邮箱" required help="按模板示例变量渲染实发">
           <a-input v-model="testTo" placeholder="you@example.com" />
         </a-form-item>
@@ -238,16 +238,6 @@
 </script>
 
 <style scoped>
-  .form-template :deep(.arco-form-item-label-col) {
-    flex: 0 0 90px;
-    width: 90px;
-    max-width: 90px;
-  }
-  .form-template :deep(.arco-form-item-wrapper-col) {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: 100%;
-  }
   .var-list {
     width: 100%;
   }

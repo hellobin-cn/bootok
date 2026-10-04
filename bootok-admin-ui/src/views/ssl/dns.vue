@@ -40,7 +40,7 @@
     @ok="submitDns"
     :ok-loading="dnsSaving"
   >
-    <a-form :model="dnsForm" class="form-dns">
+    <a-form :model="dnsForm" class="form-dns" label-align="right" auto-label-width>
       <a-form-item label="名称" required>
         <a-input v-model="dnsForm.title" placeholder="如：阿里云-主账号" />
       </a-form-item>
@@ -183,15 +183,3 @@
   onMounted(loadDnsAccounts);
 </script>
 
-<style scoped>
-  .form-dns :deep(.arco-form-item-label-col) {
-    flex: 0 0 auto;
-    width: 150px;
-    max-width: 150px;
-  }
-  .form-dns :deep(.arco-form-item-wrapper-col) {
-    flex: 1 1 auto;
-    width: auto;
-    max-width: 100%;
-  }
-</style>
