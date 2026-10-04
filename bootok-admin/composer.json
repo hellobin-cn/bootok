@@ -1,27 +1,30 @@
 {
-    "name": "workerman/webman",
+    "name": "bootok/bootok",
     "type": "project",
     "keywords": [
-        "high performance",
-        "http service"
+        "admin",
+        "dashboard",
+        "webman",
+        "crud",
+        "permission",
+        "ssl",
+        "acme"
     ],
-    "homepage": "https://www.workerman.net",
+    "homepage": "https://gitee.com/hellobin-cn/bootok",
     "license": "MIT",
-    "description": "High performance HTTP Service Framework.",
+    "description": "通用后台管理脚手架：模型注解驱动，一个模型即完整资源。",
     "authors": [
         {
-            "name": "walkor",
-            "email": "walkor@workerman.net",
-            "homepage": "https://www.workerman.net",
+            "name": "hellobin",
+            "email": "zhangbin1126@126.com",
+            "homepage": "https://gitee.com/hellobin-cn",
             "role": "Developer"
         }
     ],
     "support": {
-        "email": "walkor@workerman.net",
-        "issues": "https://github.com/walkor/webman/issues",
-        "forum": "https://wenda.workerman.net/",
-        "wiki": "https://workerman.net/doc/webman",
-        "source": "https://github.com/walkor/webman"
+        "email": "zhangbin1126@126.com",
+        "issues": "https://gitee.com/hellobin-cn/bootok/issues",
+        "source": "https://gitee.com/hellobin-cn/bootok"
     },
     "require": {
         "bootok/acme": "@dev",

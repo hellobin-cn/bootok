@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b7fe09534f1fd22b063afbc6e070688f",
+    "content-hash": "80aca402e6b3550cebdaa848a5a70e3d",
     "packages": [
         {
             "name": "bootok/acme",
@@ -12,7 +12,7 @@
             "dist": {
                 "type": "path",
                 "url": "../acme",
-                "reference": "249da916e21909f5f84fdfe5075081dc39fced7b"
+                "reference": "ef537baee703523b73fa6b98f580be6245f033f5"
             },
             "require": {
                 "ext-openssl": "*",
@@ -31,6 +31,13 @@
             },
             "license": [
                 "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "hellobin",
+                    "email": "zhangbin1126@126.com",
+                    "role": "Developer"
+                }
             ],
             "description": "纯 PHP 实现的 ACME v2 (RFC 8555) 客户端，DNS-01 验证，PHP 8.2+，无重依赖",
             "keywords": [
@@ -53,7 +60,7 @@
             "dist": {
                 "type": "path",
                 "url": "../http",
-                "reference": "595fc5368336044d56d1e20a90111800536a3261"
+                "reference": "34fb370c2b0b5ab13fec84f3b958c5c83cd94d0e"
             },
             "require": {
                 "php": ">=8.2",
@@ -76,6 +83,13 @@
             },
             "license": [
                 "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "hellobin",
+                    "email": "zhangbin1126@126.com",
+                    "role": "Developer"
+                }
             ],
             "description": "基于 Symfony HttpClient 的 HTTP 客户端，完全兼容 yzh52521/easyhttp 门面 API（高版本 PHP 替代方案）",
             "keywords": [
