@@ -41,7 +41,7 @@ export default class BaseApi {
         })
         .catch(function () {
           // 全局拦截器已统一提示；此处以失败信封落定，避免调用方 await 永久挂起（按钮 loading 卡死的根源）
-          resolve({ code: '-1', data: null, message: '' });
+          resolve({ code: '-1', data: null, message: '' } as ApiResponse<T>);
         });
     });
   }
