@@ -70,9 +70,10 @@
           <a-table-column title="ID" data-index="id" :width="70" />
           <a-table-column title="名称" data-index="title" :width="150" />
           <a-table-column title="绑定域名" data-index="domain" :width="180" />
-          <a-table-column title="模式" :width="110" align="center">
+          <a-table-column title="模式" :width="130" align="center">
             <template #cell="{ record }">
-              <a-tag v-if="record.mode === 'remote'" color="purple">远程 SSH</a-tag>
+              <a-tag v-if="record.channel === 'cdn'" color="orange">{{ record.mode === 'tencent' ? '腾讯云 CDN' : '阿里云 CDN' }}</a-tag>
+              <a-tag v-else-if="record.mode === 'remote'" color="purple">远程 SSH</a-tag>
               <a-tag v-else color="green">本机</a-tag>
             </template>
           </a-table-column>
@@ -262,39 +263,66 @@
             allow-search
           />
         </a-form-item>
-        <a-form-item label="部署模式" required help="本机：直接落盘执行；远程：SSH 免密登录">
-          <a-radio-group v-model="deployForm.mode">
+        <a-form-item label="部署方式" required help="证书推送到哪、如何生效">
+          <a-radio-group v-model="deployForm.mode" :disabled="!!deployForm.id">
             <a-radio value="local">本机</a-radio>
             <a-radio value="remote">远程 SSH</a-radio>
+            <a-radio value="aliyun">阿里云 CDN</a-radio>
+            <a-radio value="tencent">腾讯云 CDN</a-radio>
           </a-radio-group>
         </a-form-item>
-        <template v-if="deployForm.mode === 'remote'">
-          <a-form-item label="主机" required>
-            <a-input v-model="deployForm.config.host" placeholder="IP 或主机名" />
+
+        <template v-if="deployForm.mode === 'aliyun' || deployForm.mode === 'tencent'">
+          <a-form-item label="加速域名" required help="已接入 CDN 的域名，HTTPS 证书将配置到它上面">
+            <a-input v-model="deployForm.config.cdnDomain" placeholder="cdn.example.com" />
           </a-form-item>
-          <a-form-item label="端口">
-            <a-input-number v-model="deployForm.config.port" :min="1" :max="65535" />
+          <template v-if="deployForm.mode === 'aliyun'">
+            <a-form-item label="AccessKey ID" required>
+              <a-input v-model="deployForm.config.accessKeyId" />
+            </a-form-item>
+            <a-form-item label="AccessKey Secret" required>
+              <a-input-password v-model="deployForm.config.accessKeySecret" />
+            </a-form-item>
+          </template>
+          <template v-else>
+            <a-form-item label="SecretId" required>
+              <a-input v-model="deployForm.config.secretId" />
+            </a-form-item>
+            <a-form-item label="SecretKey" required>
+              <a-input-password v-model="deployForm.config.secretKey" />
+            </a-form-item>
+          </template>
+        </template>
+
+        <template v-else>
+          <template v-if="deployForm.mode === 'remote'">
+            <a-form-item label="主机" required>
+              <a-input v-model="deployForm.config.host" placeholder="IP 或主机名" />
+            </a-form-item>
+            <a-form-item label="端口">
+              <a-input-number v-model="deployForm.config.port" :min="1" :max="65535" />
+            </a-form-item>
+            <a-form-item label="用户名" required>
+              <a-input v-model="deployForm.config.username" placeholder="root" />
+            </a-form-item>
+            <a-form-item label="私钥" required help="OpenSSH/PEM 私钥；公钥需追加到目标机 ~/.ssh/authorized_keys">
+              <a-textarea
+                v-model="deployForm.config.privateKey"
+                :auto-size="{ minRows: 3, maxRows: 8 }"
+                placeholder="-----BEGIN PRIVATE KEY-----"
+              />
+            </a-form-item>
+          </template>
+          <a-form-item label="证书路径" required :help="deployForm.mode === 'local' ? '本机绝对路径' : '远端绝对路径'">
+            <a-input v-model="deployForm.config.certPath" placeholder="/etc/nginx/ssl/fullchain.pem" />
           </a-form-item>
-          <a-form-item label="用户名" required>
-            <a-input v-model="deployForm.config.username" placeholder="root" />
+          <a-form-item label="私钥路径" required>
+            <a-input v-model="deployForm.config.keyPath" placeholder="/etc/nginx/ssl/privkey.pem" />
           </a-form-item>
-          <a-form-item label="私钥" required help="OpenSSH/PEM 私钥；公钥需追加到目标机 ~/.ssh/authorized_keys">
-            <a-textarea
-              v-model="deployForm.config.privateKey"
-              :auto-size="{ minRows: 3, maxRows: 8 }"
-              placeholder="-----BEGIN PRIVATE KEY-----"
-            />
+          <a-form-item label="reload 命令" required help="证书写入后执行，如 systemctl reload nginx">
+            <a-input v-model="deployForm.config.reloadCmd" placeholder="systemctl reload nginx" />
           </a-form-item>
         </template>
-        <a-form-item label="证书路径" required :help="deployForm.mode === 'local' ? '本机绝对路径' : '远端绝对路径'">
-          <a-input v-model="deployForm.config.certPath" placeholder="/etc/nginx/ssl/fullchain.pem" />
-        </a-form-item>
-        <a-form-item label="私钥路径" required>
-          <a-input v-model="deployForm.config.keyPath" placeholder="/etc/nginx/ssl/privkey.pem" />
-        </a-form-item>
-        <a-form-item label="reload 命令" required help="证书写入后执行，如 systemctl reload nginx">
-          <a-input v-model="deployForm.config.reloadCmd" placeholder="systemctl reload nginx" />
-        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -490,8 +518,12 @@
       id: 0,
       title: '',
       domain: '',
+      channel: 'ssh',
       mode: 'local',
-      config: { host: '', port: 22, username: '', privateKey: '', certPath: '', keyPath: '', reloadCmd: '' },
+      config: {
+        host: '', port: 22, username: '', privateKey: '', certPath: '', keyPath: '', reloadCmd: '',
+        cdnDomain: '', accessKeyId: '', accessKeySecret: '', secretId: '', secretKey: '',
+      },
     };
   }
 
@@ -534,6 +566,7 @@
         id: record.id,
         title: record.title,
         domain: record.domain,
+        channel: record.channel ?? 'ssh',
         mode: record.mode,
         config: Object.assign(emptyDeployForm().config, record.config ?? {}),
       };
@@ -553,7 +586,14 @@
     try {
       // raw axios（BaseApi 业务错误时 promise 不落定，ok-loading 会永远转圈）；
       // config 驼峰键转下划线（与 BaseApi 提交语义一致；hump2underline 原地转换无返回值）
-      const payload: any = { title: f.title, domain: f.domain, channel: 'ssh', mode: f.mode, config: f.config };
+      // 部署方式四选一（mode），channel 由 mode 推导：CDN 厂商 → cdn，其余 → ssh
+      const payload: any = {
+        title: f.title,
+        domain: f.domain,
+        channel: f.mode === 'aliyun' || f.mode === 'tencent' ? 'cdn' : 'ssh',
+        mode: f.mode,
+        config: f.config,
+      };
       field.hump2underline(payload);
       const res: any = await axios.request({
         baseURL: import.meta.env.VITE_API_BASE_URL as string,

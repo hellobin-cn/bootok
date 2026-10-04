@@ -33,6 +33,29 @@ class SslDeploy extends Model
     {
         // cast 属性不能间接修改（Indirect modification of overloaded property），整组取出改完再赋回
         $config = is_array($this->config) ? $this->config : [];
+        $channel = $this->channel === 'cdn' ? 'cdn' : 'ssh';
+        $this->channel = $channel;
+
+        if ($channel === 'cdn') {
+            // 云 CDN 通道：mode = 云厂商（aliyun/tencent）
+            if (!in_array($this->mode, ['aliyun', 'tencent'], true)) {
+                return 'CDN 服务商仅支持 aliyun / tencent';
+            }
+            if (trim((string) ($config['cdn_domain'] ?? '')) === '') {
+                return '配置项 cdn_domain 不能为空';
+            }
+            $required = $this->mode === 'tencent' ? ['secret_id', 'secret_key'] : ['access_key_id', 'access_key_secret'];
+            foreach ($required as $field) {
+                if (trim((string) ($config[$field] ?? '')) === '') {
+                    return "配置项 {$field} 不能为空";
+                }
+            }
+            $this->config = $config;
+
+            return '';
+        }
+
+        // SSH 通道：mode = local/remote
         $mode = $this->mode === 'remote' ? 'remote' : 'local';
         $this->mode = $mode;
         $required = $mode === 'remote'

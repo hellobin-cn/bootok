@@ -2,6 +2,7 @@
 
 namespace app\service;
 
+use app\cloud\CdnCertSynchronizer;
 use app\model\SslDeploy;
 use app\model\SslTask;
 use phpseclib3\Crypt\PublicKeyLoader;
@@ -66,15 +67,19 @@ class SslDeployService
     }
 
     /**
-     * 连通性测试（不执行 reload）：
-     * local —— 校验落盘目录可创建/可写
-     * remote —— SSH 登录并执行 echo
+     * 连通性测试（不执行 reload/推送）：
+     * ssh+local —— 校验落盘目录可创建/可写
+     * ssh+remote —— SSH 登录并执行 echo
+     * cdn —— 只读查询云 CDN，验证凭据与域名归属
      *
      * @return array{ok: bool, message: string}
      */
     public static function test(SslDeploy $target): array
     {
         $config = $target->config ?? [];
+        if ($target->channel === 'cdn') {
+            return CdnCertSynchronizer::probe((string) $target->mode, $config);
+        }
         if ($target->mode === 'remote') {
             $ssh = self::sshSession($config);
             $output = $ssh->exec('echo bootok-deploy-ok');
@@ -132,6 +137,14 @@ class SslDeployService
     private static function execute(SslDeploy $target, string $fullchain, string $privkey): void
     {
         $config = $target->config ?? [];
+
+        // 云 CDN 通道：证书推到云 CDN 域名的 HTTPS 配置（无需路径与 reload 概念）
+        if ($target->channel === 'cdn') {
+            CdnCertSynchronizer::deploy((string) $target->mode, $config, (string) $target->domain, $fullchain, $privkey);
+
+            return;
+        }
+
         $certPath = (string) ($config['cert_path'] ?? '');
         $keyPath = (string) ($config['key_path'] ?? '');
         $reloadCmd = (string) ($config['reload_cmd'] ?? '');
