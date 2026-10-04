@@ -48,4 +48,11 @@ interface StorageInterface
      * 私有读取的签名 URL（公开读的驱动等同 url()）
      */
     public function signedUrl(string $relativePath, int $expires = 3600): string;
+
+    /**
+     * 配置自检：写读删一个探针对象，验证凭据、权限与网络连通
+     *
+     * @return array{ok: bool, message: string}
+     */
+    public function test(): array;
 }

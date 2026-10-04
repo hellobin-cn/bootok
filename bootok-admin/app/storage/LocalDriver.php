@@ -85,6 +85,24 @@ class LocalDriver implements StorageInterface
         return $this->url($relativePath);
     }
 
+    public function test(): array
+    {
+        $probe = 'bootok-probe/' . date('Ymd') . '_' . bin2hex(random_bytes(4)) . '.tmp';
+        $content = 'bootok-storage-probe ' . date('Y-m-d H:i:s');
+        try {
+            $this->putContent($probe, $content);
+            $read = $this->get($probe);
+            if ($read !== $content) {
+                return ['ok' => false, 'message' => '写入后读取内容不一致'];
+            }
+            $this->delete($probe);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+
+        return ['ok' => true, 'message' => '本地目录读写正常：' . $this->root()];
+    }
+
     /**
      * 相对路径 → 绝对路径（归一化并校验未越出根目录）
      *

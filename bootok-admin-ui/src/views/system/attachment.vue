@@ -31,9 +31,10 @@
               <span v-else style="color: var(--color-text-3)">直连</span>
             </template>
           </a-table-column>
-          <a-table-column title="操作" :width="180">
+          <a-table-column title="操作" :width="240">
             <template #cell="{ record }">
               <a-space>
+                <a-button size="mini" :loading="channelTestingId === record.id" @click="testChannel(record.id)">测试</a-button>
                 <a-button size="mini" type="outline" @click="openChannel(record)" v-permission="'storage-channel.edit'">编辑</a-button>
                 <a-popconfirm content="确认删除该渠道？已删除渠道上的附件将回退默认渠道访问" type="warning" @ok="deleteChannel(record.id)">
                   <a-button size="mini" status="danger" v-permission="'storage-channel.delete'">删除</a-button>
@@ -177,8 +178,11 @@
 <script lang="ts" setup>
   import { computed, onMounted, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
+  import axios from 'axios';
   import crud from '@/components/crud/index.vue';
   import BaseApi from '@/api/base';
+  import field from '@/utils/field';
+  import { getToken } from '@/utils/auth';
   import type { TableColumnData } from '@arco-design/web-vue';
 
   const crudRef = ref();
@@ -271,26 +275,35 @@
   }
 
   // Arco 弹窗 OK 默认自动关闭，校验失败需要留在弹窗内，故拦截
-  function handleChannelOk(done: (closed: boolean) => void) {
+  // 保存走 raw axios（BaseApi 业务错误时 promise 不落定，ok-loading 会永远转圈）
+  async function handleChannelOk(done: (closed: boolean) => void) {
     const f = channelForm.value;
     if (!f.title.trim()) {
       Message.error('请填写名称');
       return;
     }
     channelSaving.value = true;
-    const payload = { title: f.title, type: f.type, is_default: f.isDefault, config: f.config };
-    const request = f.id ? channelApi.updateItem(f.id, payload) : channelApi.createItem(payload);
-    request
-      .then((res) => {
-        if (res.code === '0') {
-          Message.success(f.id ? '已更新' : '已创建');
-          channelVisible.value = false;
-          loadChannels();
-        }
-      })
-      .finally(() => {
-        channelSaving.value = false;
+    try {
+      // field.hump2underline 为原地转换无返回值（项目约定：先赋值再转换）
+      const payload: any = { title: f.title, type: f.type, is_default: f.isDefault, config: f.config };
+      field.hump2underline(payload);
+      const res: any = await axios.request({
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        url: f.id ? `/auto/storage-channel/${f.id}` : '/auto/storage-channel',
+        method: f.id ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        data: payload,
       });
+      if (res.code === '0') {
+        Message.success(f.id ? '已更新' : '已创建');
+        done(true);
+        loadChannels();
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '保存失败');
+    } finally {
+      channelSaving.value = false;
+    }
   }
 
   async function deleteChannel(id: number) {
@@ -298,6 +311,27 @@
     if (res.code === '0') {
       Message.success('已删除');
       loadChannels();
+    }
+  }
+
+  // 配置自检：写读删探针对象，验证凭据/权限/网络（新建未保存的渠道先保存再测）
+  const channelTestingId = ref<number | null>(null);
+
+  async function testChannel(id: number) {
+    channelTestingId.value = id;
+    try {
+      const res: any = await axios.post(`/storage/channel/${id}/test`, {}, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 30000,
+      });
+      if (res.code === '0') {
+        Message.success(res.data?.message || '配置有效');
+      }
+    } catch (e: any) {
+      Message.error(e?.message ?? '测试失败');
+    } finally {
+      channelTestingId.value = null;
     }
   }
 

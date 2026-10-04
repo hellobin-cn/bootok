@@ -305,6 +305,7 @@
   import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
   import BaseApi from '@/api/base';
+  import field from '@/utils/field';
   import { getToken } from '@/utils/auth';
   import { useUserStore } from '@/store';
 
@@ -550,14 +551,24 @@
     }
     deploySaving.value = true;
     try {
-      // 提交时 BaseApi 递归转下划线：config.privateKey => config.private_key
-      const payload = { title: f.title, domain: f.domain, channel: 'ssh', mode: f.mode, config: f.config };
-      const res = f.id ? await deployApi.updateItem(f.id, payload) : await deployApi.createItem(payload);
+      // raw axios（BaseApi 业务错误时 promise 不落定，ok-loading 会永远转圈）；
+      // config 驼峰键转下划线（与 BaseApi 提交语义一致；hump2underline 原地转换无返回值）
+      const payload: any = { title: f.title, domain: f.domain, channel: 'ssh', mode: f.mode, config: f.config };
+      field.hump2underline(payload);
+      const res: any = await axios.request({
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        url: f.id ? `/auto/ssl-deploy/${f.id}` : '/auto/ssl-deploy',
+        method: f.id ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        data: payload,
+      });
       if (res.code === '0') {
         Message.success(f.id ? '已更新' : '已创建');
         deployVisible.value = false;
         loadDeploys();
       }
+    } catch (e: any) {
+      Message.error(e?.message ?? '保存失败');
     } finally {
       deploySaving.value = false;
     }
@@ -676,13 +687,21 @@
       : { access_key_id: f.accessKeyId.trim(), access_key_secret: f.accessKeySecret.trim() };
     dnsSaving.value = true;
     try {
-      const payload = { title: f.title, provider: f.provider, config };
-      const res = f.id ? await dnsApi.updateItem(f.id, payload) : await dnsApi.createItem(payload);
+      // raw axios（BaseApi 业务错误时 promise 不落定，ok-loading 会永远转圈）
+      const res: any = await axios.request({
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        url: f.id ? `/auto/dns-account/${f.id}` : '/auto/dns-account',
+        method: f.id ? 'PUT' : 'POST',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        data: (() => { const p: any = { title: f.title, provider: f.provider, config }; field.hump2underline(p); return p; })(),
+      });
       if (res.code === '0') {
         Message.success(f.id ? '已更新' : '已创建');
         dnsVisible.value = false;
         loadDnsAccounts();
       }
+    } catch (e: any) {
+      Message.error(e?.message ?? '保存失败');
     } finally {
       dnsSaving.value = false;
     }

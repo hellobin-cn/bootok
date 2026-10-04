@@ -98,6 +98,26 @@ class OssDriver implements StorageInterface
             . '&Signature=' . rawurlencode($signature);
     }
 
+    public function test(): array
+    {
+        $probe = 'bootok-probe/' . date('Ymd') . '_' . bin2hex(random_bytes(4)) . '.tmp';
+        $content = 'bootok-storage-probe ' . date('Y-m-d H:i:s');
+        $start = microtime(true);
+        try {
+            $this->putContent($probe, $content);
+            $read = $this->get($probe);
+            if ($read !== $content) {
+                return ['ok' => false, 'message' => '写入后读取内容不一致（签名或网络异常）'];
+            }
+            $this->delete($probe);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+        $elapsed = round((microtime(true) - $start) * 1000);
+
+        return ['ok' => true, 'message' => "OSS 读写删全通（{$elapsed}ms）：{$this->bucket}.{$this->endpoint}"];
+    }
+
     private function head(string $relativePath): bool
     {
         try {
@@ -149,7 +169,6 @@ class OssDriver implements StorageInterface
         $resp = curl_exec($ch);
         $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $error = curl_error($ch);
-        curl_close($ch);
 
         if ($status >= 400 || (!is_string($resp) && $status !== 204)) {
             $detail = is_string($resp) ? substr(strip_tags($resp), 0, 200) : $error;
