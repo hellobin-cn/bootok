@@ -63,6 +63,12 @@ $processes = [
         'count' => 1,
         'constructor' => []
     ],
+    // 队列消费进程：即时+延迟任务，失败重试/死信，count 固定 1（串行语义）
+    'queue' => [
+        'handler' => app\process\QueueWorker::class,
+        'count' => 1,
+        'constructor' => []
+    ],
     // File update detection and automatic reload
     'monitor' => [
         'handler' => app\process\Monitor::class,

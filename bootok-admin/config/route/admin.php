@@ -18,6 +18,7 @@ use app\controller\admin\MailChannelController;
 use app\controller\admin\MailLogController;
 use app\controller\admin\MailTemplateController;
 use app\controller\admin\MessageController;
+use app\controller\admin\QueueController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
 use app\controller\admin\SslTaskController;
@@ -95,6 +96,9 @@ Route::group('', function () {
         Route::delete('/message/{id:\d+}', [MessageController::class, 'remove']);
         // IM 告警通道测试（配置在参数设置-告警）
         Route::post('/im/test', [ImAlertController::class, 'test']);
+        // 队列观测（仅超管）
+        Route::get('/queue/stats', [QueueController::class, 'stats']);
+        Route::post('/queue/retry-failed', [QueueController::class, 'retryFailed']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);
