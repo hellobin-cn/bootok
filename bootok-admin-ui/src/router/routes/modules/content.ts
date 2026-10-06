@@ -22,7 +22,13 @@ const CONTENT: AppRouteRecordRaw = {
         locale: 'menu.content.article',
         title: '文章管理',
         requiresAuth: true,
-        perms: ['article.create', 'article.edit', 'article.delete'],
+        perms: [
+          'article.create',
+          'article.edit',
+          'article.delete',
+          'article.export',
+          'article.import',
+        ],
       },
     },
     {

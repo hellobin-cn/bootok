@@ -94,12 +94,14 @@ Route::group('', function () {
         Route::delete('/storage/folders/{id:\d+}', [FolderController::class, 'remove']);
 
         // 自动资源路由，模型由 #[AutoResource] 注解在运行时闸门放行
-        // 字面量段（rows/export/batch-delete/all/form/attachment）必须注册在 {id} 通配之前
+        // 字面量段（rows/export/batch-delete/import/import-template/all/form/attachment）必须注册在 {id} 通配之前
         Route::group('/auto', function () {
             Route::post('/{model}', [ResourceController::class, 'create']);
             Route::post('/{model}/rows', [ResourceController::class, 'getRows']);
             Route::post('/{model}/export', [ResourceController::class, 'export']);
             Route::post('/{model}/batch-delete', [ResourceController::class, 'batchDelete']);
+            Route::get('/{model}/import-template', [ResourceController::class, 'importTemplate']);
+            Route::post('/{model}/import', [ResourceController::class, 'import']);
             Route::get('/{model}/all', [ResourceController::class, 'getAll']);
             Route::get('/{model}/form', [ResourceController::class, 'getForm']);
             Route::post('/{model}/trash', [ResourceController::class, 'trash']);

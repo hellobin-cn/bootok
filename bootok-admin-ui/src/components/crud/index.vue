@@ -39,6 +39,12 @@
                 >
                   导出
                 </a-button>
+                <a-button
+                  @click="openImport"
+                  v-permission="modelName + '.import'"
+                >
+                  导入
+                </a-button>
                 <a-popconfirm
                   v-if="batch && deleteEnable && selectedRowKeys.length > 0"
                   :content="`确认删除选中的 ${selectedRowKeys.length} 条数据？`"
@@ -266,6 +272,58 @@
       </a-alert>
       <a-input v-model="confirmText" placeholder="删除" allow-clear />
     </a-modal>
+
+    <!-- Excel 导入：模板下载 + 上传导入 + 行级错误报告 -->
+    <a-modal
+      v-model:visible="importVisible"
+      title="导入数据"
+      :width="600"
+      :footer="false"
+      :unmount-on-close="true"
+    >
+      <a-space direction="vertical" fill style="width: 100%">
+        <a-alert type="info">
+          先下载模板按格式填写（首行表头不可改），上传后逐行导入；失败行不影响其他行，完成后返回逐行错误报告。
+        </a-alert>
+        <a-space>
+          <a-button @click="downloadTemplate" :loading="templateLoading">
+            下载模板
+          </a-button>
+          <a-upload
+            :custom-request="uploadImport"
+            :show-file-list="false"
+            accept=".xlsx"
+          >
+            <template #upload-button>
+              <a-button type="primary" :loading="importing">
+                选择文件导入
+              </a-button>
+            </template>
+          </a-upload>
+        </a-space>
+        <template v-if="importResult">
+          <a-alert :type="importResult.fail > 0 ? 'warning' : 'success'">
+            共 {{ importResult.total }} 行：成功 {{ importResult.success }} 条，失败
+            {{ importResult.fail }} 条
+          </a-alert>
+          <a-table
+            v-if="importResult.errors?.length"
+            :data="importResult.errors"
+            :pagination="false"
+            size="small"
+            :bordered="false"
+            :scroll="{ y: 260 }"
+          >
+            <a-table-column title="Excel 行号" :width="100">
+              <template #cell="{ record }">{{ record.row }}</template>
+            </a-table-column>
+            <a-table-column title="失败原因">
+              <template #cell="{ record }">{{ record.error }}</template>
+            </a-table-column>
+          </a-table>
+        </template>
+      </a-space>
+    </a-modal>
   </div>
 </template>
 <script setup lang="ts">
@@ -391,7 +449,7 @@
   async function exportItems() {
     exporting.value = true;
     try {
-      const kebab = props.modelName.replace(/([A-Z])/g, '-$1').toLowerCase();
+      const kebab = kebabName(props.modelName);
       const res = await axios.post(`/auto/${kebab}/export`, props.filter, {
         baseURL: import.meta.env.VITE_API_BASE_URL as string,
         responseType: 'blob',
@@ -417,6 +475,83 @@
     } finally {
       exporting.value = false;
     }
+  }
+
+  // ===== Excel 导入：模板下载 + 上传 + 行级错误报告 =====
+  const importVisible = ref(false);
+  const templateLoading = ref(false);
+  const importing = ref(false);
+  const importResult = ref<ImportResult | null>(null);
+
+  interface ImportResult {
+    total: number;
+    success: number;
+    fail: number;
+    errors: { row: number; error: string }[];
+  }
+
+  const kebabName = (name: string) =>
+    name.replace(/([A-Z])/g, '-$1').toLowerCase();
+
+  function openImport() {
+    importResult.value = null;
+    importVisible.value = true;
+  }
+
+  // 模板下载：blob 直下，后端出错时返回 JSON 信封
+  async function downloadTemplate() {
+    templateLoading.value = true;
+    try {
+      const kebab = kebabName(props.modelName);
+      const res = await axios.get(`/auto/${kebab}/import-template`, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+      });
+      const contentType = String(res.headers['content-type'] ?? '');
+      if (contentType.includes('application/json')) {
+        const text = await (res.data as Blob).text();
+        Message.error(JSON.parse(text).message || '模板下载失败');
+        return;
+      }
+      const url = URL.createObjectURL(res.data as Blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${kebab}_导入模板.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      Message.error('模板下载失败');
+    } finally {
+      templateLoading.value = false;
+    }
+  }
+
+  // 逐行导入可能超全局 30s 兜底，单独放宽到 5 分钟；错误信封由全局拦截器统一提示
+  function uploadImport(option: any) {
+    const fd = new FormData();
+    fd.append('file', option.fileItem.file);
+    importing.value = true;
+    importResult.value = null;
+    axios
+      .post(`/auto/${kebabName(props.modelName)}/import`, fd, {
+        baseURL: import.meta.env.VITE_API_BASE_URL as string,
+        headers: { Authorization: `Bearer ${getToken() ?? ''}` },
+        timeout: 300000,
+      })
+      .then((body: any) => {
+        importResult.value = body.data;
+        Message.success(body.message || '导入完成');
+        getItems();
+        option.onSuccess(body);
+      })
+      .catch(() => {
+        option.onError(new Error('import failed'));
+      })
+      .finally(() => {
+        importing.value = false;
+      });
+    return { abort() {} };
   }
 
   function batchDelete() {

@@ -49,9 +49,10 @@ class Permission implements MiddlewareInterface
             return json_error($request->header('request-id', ''), Code::FORBIDDEN->getDescription(), Code::FORBIDDEN->value);
         }
 
-        // 写操作：一律校验权限点（批量删除/彻底删除复用 delete 权限点）
+        // 写操作：一律校验权限点（批量删除/彻底删除复用 delete 权限点，模板下载复用 import 权限点）
         $markAction = match ($request->action) {
             'batchDelete', 'forceDelete' => 'delete',
+            'importTemplate' => 'import',
             default => $request->action,
         };
         $mark = strtolower($subject . '.' . $markAction);

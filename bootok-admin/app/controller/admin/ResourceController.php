@@ -23,6 +23,15 @@ class ResourceController extends Controller
     /** 单次导出上限 */
     private const EXPORT_LIMIT = 10000;
 
+    /** 单次导入行数上限 */
+    private const IMPORT_LIMIT = 5000;
+
+    /** 导入错误明细最多返回条数（超出仍计入 fail） */
+    private const IMPORT_ERROR_LIMIT = 100;
+
+    /** 导入/模板不暴露的系统列（主键、时间戳由后端管理） */
+    private const IMPORT_SKIP_COLUMNS = ['created_at', 'updated_at', 'deleted_at'];
+
     /**
      * 指定模型类（专用子类使用，跳过路由解析）
      */
@@ -289,11 +298,18 @@ class ResourceController extends Controller
             $rowIndex++;
         }
 
+        return $this->spreadsheetDownload($spreadsheet, (string) $this->request->route?->param('model', 'export'));
+    }
+
+    /**
+     * xlsx 临时落盘并以下载响应返回（前缀_时间戳.xlsx），顺带清理一小时前的临时文件
+     */
+    private function spreadsheetDownload(\PhpOffice\PhpSpreadsheet\Spreadsheet $spreadsheet, string $namePrefix): Response
+    {
         $directory = runtime_path('export');
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
-        // 清理一小时前的临时导出文件
         foreach (glob($directory . '/*.xlsx') ?: [] as $old) {
             if (filemtime($old) < time() - 3600) {
                 @unlink($old);
@@ -303,11 +319,176 @@ class ResourceController extends Controller
         (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet))->save($path);
         $spreadsheet->disconnectWorksheets();
 
-        $name = $this->request->route?->param('model', 'export');
         return response('')->withHeaders([
             'Content-Type'        => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'Content-Disposition' => "attachment; filename*=UTF-8''" . rawurlencode($name . '_' . date('YmdHis') . '.xlsx'),
+            'Content-Disposition' => "attachment; filename*=UTF-8''" . rawurlencode($namePrefix . '_' . date('YmdHis') . '.xlsx'),
         ])->withFile($path);
+    }
+
+    /**
+     * 导入模板：表头与导出同源（exportMap），不含主键/时间戳；第二张表为填写说明
+     */
+    public function importTemplate(): Response
+    {
+        $model = $this->resolve('importTemplate');
+        if ($model instanceof Response) {
+            return $model;
+        }
+        [, $headers] = $this->exportColumns($model, true);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->fromArray(array_values($headers), null, 'A1');
+        $guide = $spreadsheet->createSheet();
+        $guide->setTitle('填写说明');
+        $guide->fromArray([
+            ['1. 首行表头请勿修改（可整列删除），数据从第 2 行开始填写，空行自动跳过'],
+            ['2. 枚举/字典列填写选项值 value；日期支持 2026-10-06 与 2026-10-06 12:30:00 两种写法'],
+            ['3. 单次最多 ' . self::IMPORT_LIMIT . ' 行；失败行不影响其他行，导入完成后返回逐行错误报告'],
+        ], null, 'A1');
+        $guide->getColumnDimension('A')->setWidth(90);
+        return $this->spreadsheetDownload($spreadsheet, 'import-template');
+    }
+
+    /**
+     * Excel 导入：逐行走 create 同链路（setData→assignDept→beforeSave→save），
+     * 模型的校验、自动归属、数据权限天然生效；部分成功，返回行级错误报告
+     */
+    public function import(): Response
+    {
+        $model = $this->resolve('import');
+        if ($model instanceof Response) {
+            return $model;
+        }
+        $file = $this->request->file('file');
+        if (!$file || !$file->isValid()) {
+            return $this->error('请上传 xlsx 文件', Code::PARAM_VALIDATE->value);
+        }
+        if (strtolower($file->getUploadExtension()) !== 'xlsx') {
+            return $this->error('仅支持 .xlsx 文件', Code::PARAM_VALIDATE->value);
+        }
+        [$columns, $headers] = $this->exportColumns($model, true);
+        // 表头识别：中文表头（exportMap 值）与裸列名均可
+        $labelToColumn = [];
+        foreach ($headers as $column => $label) {
+            $labelToColumn[(string) $label] = $column;
+        }
+        foreach ($columns as $column) {
+            $labelToColumn[$column] ??= $column;
+        }
+
+        try {
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
+        } catch (\Throwable) {
+            return $this->error('文件解析失败，请使用下载的模板重新填写');
+        }
+        $sheet = $spreadsheet->getSheet(0);
+        $highestCol = $sheet->getHighestDataColumn(1);
+        $headerRow = array_values($sheet->rangeToArray("A1:{$highestCol}1", null, true, false, false)[0] ?? []);
+        $colMap = [];
+        foreach ($headerRow as $i => $label) {
+            $label = trim((string) $label);
+            if ($label !== '' && isset($labelToColumn[$label])) {
+                $colMap[$i] = $labelToColumn[$label];
+            }
+        }
+        if (!$colMap) {
+            $spreadsheet->disconnectWorksheets();
+            return $this->error('表头无法识别，请下载模板后按模板填写');
+        }
+
+        $class = get_class($model);
+        $highestRow = min((int) $sheet->getHighestDataRow(), self::IMPORT_LIMIT + 1);
+        $total = 0;
+        $success = 0;
+        $fail = 0;
+        $errors = [];
+        for ($row = 2; $row <= $highestRow; $row++) {
+            $data = [];
+            foreach ($colMap as $i => $column) {
+                $cell = $sheet->getCell(\PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i + 1) . $row);
+                $value = $cell->getValue();
+                if ($value === null || $value === '') {
+                    continue;
+                }
+                if (is_numeric($value) && \PhpOffice\PhpSpreadsheet\Shared\Date::isDateTime($cell)) {
+                    $date = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($value);
+                    $value = $date->format($date->format('H:i:s') === '00:00:00' ? 'Y-m-d' : 'Y-m-d H:i:s');
+                } else {
+                    $value = trim((string) $value);
+                    if ($value === '') {
+                        continue;
+                    }
+                }
+                $data[$column] = $value;
+            }
+            if (!$data) {
+                continue;
+            }
+            $total++;
+            try {
+                $item = new $class();
+                $item->setData($data);
+                $this->assignDept($item);
+                if ($message = $item->beforeSave()) {
+                    $fail++;
+                    $this->importError($errors, $row, $message);
+                    continue;
+                }
+                if ($item->save()) {
+                    ChangeLogService::record($item, 'created');
+                    $item->afterSaved();
+                    $success++;
+                } else {
+                    $fail++;
+                    $this->importError($errors, $row, '写入失败');
+                }
+            } catch (\Throwable $e) {
+                $fail++;
+                // 剥离底层连接信息，只留业务可读的原因
+                $message = str_contains($e->getMessage(), ' (Connection:') ? strstr($e->getMessage(), ' (Connection:', true) : $e->getMessage();
+                $this->importError($errors, $row, mb_substr($message, 0, 200));
+            }
+        }
+        $spreadsheet->disconnectWorksheets();
+        if ($total === 0) {
+            return $this->error('未读取到有效数据行，请按模板填写后上传');
+        }
+        $suffix = count($errors) >= self::IMPORT_ERROR_LIMIT ? '（错误明细仅展示前 ' . self::IMPORT_ERROR_LIMIT . ' 条）' : '';
+        return $this->success(
+            ['total' => $total, 'success' => $success, 'fail' => $fail, 'errors' => $errors],
+            "导入完成：成功 {$success} 条，失败 {$fail} 条{$suffix}"
+        );
+    }
+
+    /**
+     * 列清单与表头映射：exportMap 非空按其声明，否则退化为表列名；导入侧剔除主键与系统列
+     *
+     * @return array{0: string[], 1: array<string, string>} [columns, headers(column=>label)]
+     */
+    private function exportColumns(Model $model, bool $importable = false): array
+    {
+        $map = $model->exportMap();
+        if ($map) {
+            $columns = array_keys($map);
+        } else {
+            $columns = array_values(array_diff($model->getColumns(), $model->getHidden()));
+            $map = array_combine($columns, $columns);
+        }
+        if ($importable) {
+            $skip = array_merge([strtolower($model->getKeyName())], self::IMPORT_SKIP_COLUMNS);
+            $columns = array_values(array_filter($columns, fn($c) => !in_array(strtolower($c), $skip, true)));
+            $map = array_intersect_key($map, array_flip($columns));
+        }
+        return [$columns, $map];
+    }
+
+    /** 错误明细收集，超出上限后只计数不追加 */
+    private function importError(array &$errors, int $row, string $message): void
+    {
+        if (count($errors) < self::IMPORT_ERROR_LIMIT) {
+            $errors[] = ['row' => $row, 'error' => $message];
+        }
     }
 
     /**

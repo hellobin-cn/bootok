@@ -12,7 +12,7 @@ use Attribute;
 class AutoResource
 {
     /** 全部可生成的动作 */
-    public const ACTIONS = ['create', 'getAll', 'getRows', 'getForm', 'getItem', 'edit', 'delete', 'deleteFile', 'export', 'batchDelete', 'trash', 'restore', 'forceDelete'];
+    public const ACTIONS = ['create', 'getAll', 'getRows', 'getForm', 'getItem', 'edit', 'delete', 'deleteFile', 'export', 'batchDelete', 'trash', 'restore', 'forceDelete', 'import', 'importTemplate'];
 
     /** 实际允许的动作 */
     public array $actions;
