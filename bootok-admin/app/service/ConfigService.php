@@ -3,7 +3,7 @@
 namespace app\service;
 
 use app\model\SystemConfig;
-use support\Cache;
+use support\Redis;
 
 /**
  * 配置中心读取侧（全局服务）
@@ -23,7 +23,9 @@ class ConfigService
      */
     private static function payload(): array
     {
-        $cached = Cache::get(self::CACHE_KEY);
+        // 缓存直用 Redis 连接：webman/cache 的 redis store（symfony 适配器包 workerman 客户端）delete 静默失效，
+        // 且配置缓存要求多进程（admin/crontab）写后立即可见
+        $cached = self::cacheRead();
         if (is_array($cached) && isset($cached['values'], $cached['meta'])) {
             return $cached;
         }
@@ -34,7 +36,7 @@ class ConfigService
             $meta[$row->name] = ['group' => $row->group, 'type' => $row->type, 'title' => $row->title];
         }
         $payload = ['values' => $values, 'meta' => $meta];
-        Cache::set(self::CACHE_KEY, $payload);
+        self::cacheWrite($payload);
         return $payload;
     }
 
@@ -74,12 +76,34 @@ class ConfigService
             return false;
         }
         $row->value = self::stringify($value);
-        return (bool)$row->save();
+        $saved = (bool)$row->save();
+        if ($saved) {
+            // save() 不自动触发模型钩子（调用方手动 afterSaved 是本库约定），配置写入后必须主动失效缓存
+            self::flush();
+        }
+        return $saved;
     }
 
     public static function flush(): void
     {
-        Cache::delete(self::CACHE_KEY);
+        self::cacheDelete();
+    }
+
+    private static function cacheRead(): mixed
+    {
+        $raw = Redis::connection()->get(self::CACHE_KEY);
+
+        return $raw === false ? null : json_decode((string) $raw, true);
+    }
+
+    private static function cacheWrite(array $payload): void
+    {
+        Redis::connection()->setex(self::CACHE_KEY, 86400, json_encode($payload, JSON_UNESCAPED_UNICODE));
+    }
+
+    private static function cacheDelete(): void
+    {
+        Redis::connection()->del(self::CACHE_KEY);
     }
 
     /**

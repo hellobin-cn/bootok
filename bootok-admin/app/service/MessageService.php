@@ -4,6 +4,7 @@ namespace app\service;
 
 use app\model\Admin;
 use app\model\Message;
+use app\service\im\ImAlertService;
 use support\Log;
 use Throwable;
 
@@ -45,6 +46,8 @@ class MessageService
                 'type'              => in_array($type, self::TYPES, true) ? $type : Message::TYPE_NOTICE,
                 'link'              => mb_substr($link, 0, 255),
             ]);
+            // 并行出口：站内落库的同时推送到群机器人（内部吞异常，配置未启用时静默）
+            (new ImAlertService())->send($title, $content);
         } catch (Throwable $e) {
             Log::warning('站内消息发送失败: ' . $e->getMessage());
         }

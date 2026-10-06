@@ -14,6 +14,9 @@
         <a-button size="small" :disabled="!unread" @click="readAll">
           全部已读
         </a-button>
+        <a-button size="small" :loading="testing" @click="testIm">
+          测试告警推送
+        </a-button>
       </a-space>
     </template>
     <a-table
@@ -75,6 +78,7 @@
 <script lang="ts" setup>
   import { computed, onMounted, ref } from 'vue';
   import { useRouter } from 'vue-router';
+  import { Message } from '@arco-design/web-vue';
   import axios from 'axios';
 
   const router = useRouter();
@@ -85,6 +89,20 @@
   const page = ref(1);
   const pageSize = 15;
   const onlyUnread = ref(false);
+  const testing = ref(false);
+
+  // IM 告警通道连通性测试（配置在参数设置-告警，仅超管）
+  async function testIm() {
+    testing.value = true;
+    try {
+      await axios.post('/im/test', {});
+      Message.success('测试消息已推送，请在群里确认');
+    } catch (e: any) {
+      Message.error(e?.message || '推送失败');
+    } finally {
+      testing.value = false;
+    }
+  }
 
   const pagination = computed(() => ({
     total: total.value,

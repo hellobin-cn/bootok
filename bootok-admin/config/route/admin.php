@@ -13,6 +13,7 @@ use app\controller\admin\DeptController;
 use app\controller\admin\DnsAccountController;
 use app\controller\admin\FolderController;
 use app\controller\admin\IndexController;
+use app\controller\admin\ImAlertController;
 use app\controller\admin\MailChannelController;
 use app\controller\admin\MailLogController;
 use app\controller\admin\MailTemplateController;
@@ -92,6 +93,8 @@ Route::group('', function () {
         Route::post('/message/read', [MessageController::class, 'read']);
         Route::post('/message/read-all', [MessageController::class, 'readAll']);
         Route::delete('/message/{id:\d+}', [MessageController::class, 'remove']);
+        // IM 告警通道测试（配置在参数设置-告警）
+        Route::post('/im/test', [ImAlertController::class, 'test']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);
