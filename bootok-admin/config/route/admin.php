@@ -41,12 +41,16 @@ Route::group('', function () {
 
     Route::get('/', [IndexController::class, 'index']);
     Route::post('/login', [AdminController::class, 'login']);
+    Route::post('/login/2fa', [AdminController::class, 'login2fa']);
 
     Route::group('', function () {
 
         // 自身相关端点，登录即可访问，不参与权限点校验
         Route::post('/logout', [AdminController::class, 'logout']);
         Route::post('/password', [AdminController::class, 'updatePassword']);
+        Route::post('/admin/totp/setup', [AdminController::class, 'totpSetup']);
+        Route::post('/admin/totp/enable', [AdminController::class, 'totpEnable']);
+        Route::post('/admin/totp/disable', [AdminController::class, 'totpDisable']);
         Route::get('/user/info', [IndexController::class, 'getUserInfo']);
         Route::post('/upload', [UploadController::class, 'upload']);
         Route::post('/upload/editor', [UploadController::class, 'editorUpload']);

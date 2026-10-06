@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * @property int $admin_id
  * @property string $admin_name
  * @property string $admin_password
+ * @property string $totp_secret
+ * @property int $totp_enabled
  * @property int $group_id
  * @property int $is_super
  */
@@ -22,7 +24,8 @@ class Admin extends Model
 {
     protected $table = 'sys_admin';
     protected $primaryKey = 'admin_id';
-    protected $hidden = ['admin_password'];
+    // totp_secret 与密码同级敏感，列表/详情/导出一律不外发
+    protected $hidden = ['admin_password', 'totp_secret'];
 
     protected function adminPassword(): Attribute
     {

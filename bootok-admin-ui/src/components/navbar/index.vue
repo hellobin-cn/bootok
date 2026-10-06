@@ -178,6 +178,12 @@
           </a-avatar>
           <template #content>
             <a-doption>
+              <a-space @click="openTotp">
+                <icon-safe />
+                <span>两步验证</span>
+              </a-space>
+            </a-doption>
+            <a-doption>
               <a-space @click="passwordVisible = true">
                 <icon-edit />
                 <span>修改密码</span>
@@ -214,6 +220,63 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 两步验证（TOTP）：绑定/解绑 -->
+    <a-modal
+      v-model:visible="totpVisible"
+      title="两步验证"
+      :footer="false"
+      :unmount-on-close="true"
+      :width="460"
+    >
+      <a-space direction="vertical" fill style="width: 100%">
+        <a-alert v-if="!totpEnabled" type="info">
+          尚未开启。开启后每次登录需要输入验证器的 6 位动态码。
+        </a-alert>
+        <a-alert v-else type="success">
+          已开启。登录需输入验证器动态码；解绑需登录密码 + 动态码双重确认。
+        </a-alert>
+        <template v-if="!totpEnabled">
+          <a-space v-if="!totpSecret">
+            <a-button type="primary" size="small" :loading="totpLoading" @click="genTotpSecret">
+              生成绑定密钥
+            </a-button>
+          </a-space>
+          <template v-else>
+            <div v-if="totpQrUrl" style="text-align: center">
+              <img :src="totpQrUrl" alt="验证器扫码" style="width: 180px" />
+            </div>
+            <div style="font-size: 12px; color: var(--color-text-3)">
+              用验证器扫码，或手动输入密钥（base32）：
+            </div>
+            <a-typography-paragraph copyable style="margin: 0">
+              {{ totpSecret }}
+            </a-typography-paragraph>
+            <a-input
+              v-model="totpCode"
+              placeholder="输入验证器 6 位动态码确认绑定"
+              :max-length="6"
+              allow-clear
+            />
+            <a-button type="primary" long :loading="totpLoading" @click="confirmTotpEnable">
+              确认开启
+            </a-button>
+          </template>
+        </template>
+        <template v-else>
+          <a-input-password v-model="totpPassword" placeholder="登录密码" allow-clear />
+          <a-input
+            v-model="totpCode"
+            placeholder="6 位动态码"
+            :max-length="6"
+            allow-clear
+          />
+          <a-button status="danger" long :loading="totpLoading" @click="confirmTotpDisable">
+            解绑两步验证
+          </a-button>
+        </template>
+      </a-space>
+    </a-modal>
   </div>
 </template>
 
@@ -227,7 +290,8 @@
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';
-  import { updatePassword } from '@/api/user';
+  import { updatePassword, totpSetup, totpEnable, totpDisable, getUserInfo } from '@/api/user';
+  import QRCode from 'qrcode';
   import Menu from '@/components/menu/index.vue';
 
   const appStore = useAppStore();
@@ -357,6 +421,76 @@
     messageTimer = window.setInterval(loadMessages, 30000);
   });
   onUnmounted(() => window.clearInterval(messageTimer));
+
+  // ===== 两步验证（TOTP）绑定/解绑 =====
+  const totpVisible = ref(false);
+  const totpEnabled = ref(false);
+  const totpSecret = ref('');
+  const totpQrUrl = ref('');
+  const totpCode = ref('');
+  const totpPassword = ref('');
+  const totpLoading = ref(false);
+
+  async function openTotp() {
+    totpVisible.value = true;
+    totpSecret.value = '';
+    totpQrUrl.value = '';
+    totpCode.value = '';
+    totpPassword.value = '';
+    try {
+      const res: any = await getUserInfo();
+      totpEnabled.value = Number(res.data?.totp_enabled ?? 0) === 1;
+    } catch {
+      totpEnabled.value = false;
+    }
+  }
+
+  async function genTotpSecret() {
+    totpLoading.value = true;
+    try {
+      const res = await totpSetup();
+      totpSecret.value = res.data.secret;
+      totpQrUrl.value = await QRCode.toDataURL(res.data.uri, { width: 180, margin: 1 });
+    } finally {
+      totpLoading.value = false;
+    }
+  }
+
+  async function confirmTotpEnable() {
+    if (!/^\d{6}$/.test(totpCode.value)) {
+      Message.error('请输入 6 位动态码');
+      return;
+    }
+    totpLoading.value = true;
+    try {
+      await totpEnable(totpCode.value);
+      Message.success('两步验证已开启');
+      totpEnabled.value = true;
+      totpSecret.value = '';
+      totpQrUrl.value = '';
+    } finally {
+      totpLoading.value = false;
+    }
+  }
+
+  async function confirmTotpDisable() {
+    if (!totpPassword.value) {
+      Message.error('请输入登录密码');
+      return;
+    }
+    if (!/^\d{6}$/.test(totpCode.value)) {
+      Message.error('请输入 6 位动态码');
+      return;
+    }
+    totpLoading.value = true;
+    try {
+      await totpDisable(totpPassword.value, totpCode.value);
+      Message.success('两步验证已解绑');
+      totpEnabled.value = false;
+    } finally {
+      totpLoading.value = false;
+    }
+  }
 </script>
 
 <style scoped lang="less">

@@ -23,6 +23,39 @@ class AdminController extends Controller
         return $this->uniResponse($this->adminService->login($request->post('username'), $request->post('password')));
     }
 
+    /**
+     * 两步验证登录：票券 + 动态码换正式 token
+     */
+    public function login2fa(Request $request): Response
+    {
+        return $this->uniResponse($this->adminService->verify2fa(
+            (string) $request->post('ticket'),
+            (string) $request->post('code')
+        ));
+    }
+
+    /**
+     * 生成两步验证绑定密钥（验证动态码前不生效）
+     */
+    public function totpSetup(): Response
+    {
+        return $this->uniResponse($this->adminService->totpSetup($this->adminId));
+    }
+
+    public function totpEnable(Request $request): Response
+    {
+        return $this->uniResponse($this->adminService->totpEnable($this->adminId, (string) $request->post('code')));
+    }
+
+    public function totpDisable(Request $request): Response
+    {
+        return $this->uniResponse($this->adminService->totpDisable(
+            $this->adminId,
+            (string) $request->post('password'),
+            (string) $request->post('code')
+        ));
+    }
+
     public function logout(): Response
     {
         return $this->uniResponse($this->adminService->logout($this->adminId));

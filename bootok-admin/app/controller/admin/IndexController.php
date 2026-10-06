@@ -29,9 +29,10 @@ class IndexController extends Controller
             $purview = (new PermissionService())->purview($this->groupId);
         }
         return $this->success([
-            'admin_name' => $admin->admin_name,
-            'is_super'   => $admin->is_super,
-            'purview'    => $purview,
+            'admin_name'    => $admin->admin_name,
+            'is_super'      => $admin->is_super,
+            'purview'       => $purview,
+            'totp_enabled'  => (int) $admin->totp_enabled,
         ]);
     }
 }

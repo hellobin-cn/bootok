@@ -41,8 +41,26 @@
           </template>
         </a-input-password>
       </a-form-item>
+      <a-form-item
+        v-if="twoFaTicket"
+        field="code"
+        :rules="[{ required: true, message: '请输入 6 位动态码' }]"
+        :validate-trigger="['change', 'blur']"
+        hide-label
+      >
+        <a-input
+          v-model="twoFaCode"
+          placeholder="请输入验证器 6 位动态码"
+          :max-length="6"
+          allow-clear
+        >
+          <template #prefix>
+            <icon-safe />
+          </template>
+        </a-input>
+      </a-form-item>
       <a-space :size="16" direction="vertical">
-        <div class="login-form-password-actions">
+        <div v-if="!twoFaTicket" class="login-form-password-actions">
           <a-checkbox
             checked="rememberPassword"
             :model-value="loginConfig.rememberPassword"
@@ -51,8 +69,11 @@
             {{ $t('login.form.rememberPassword') }}
           </a-checkbox>
         </div>
+        <a-link v-if="twoFaTicket" style="text-align: center" @click="resetTwoFa">
+          返回重新登录
+        </a-link>
         <a-button type="primary" html-type="submit" long :loading="loading">
-          {{ $t('login.form.login') }}
+          {{ twoFaTicket ? '验证并登录' : $t('login.form.login') }}
         </a-button>
       </a-space>
     </a-form>
@@ -69,6 +90,8 @@
   import { useUserStore } from '@/store';
   import useLoading from '@/hooks/loading';
   import type { LoginData } from '@/api/user';
+  import { login2fa } from '@/api/user';
+  import { setToken } from '@/utils/auth';
 
   const router = useRouter();
   const { t } = useI18n();
@@ -85,6 +108,27 @@
     password: '',
   });
 
+  // 两步验证：登录响应 need_2fa 时进入动态码二步
+  const twoFaTicket = ref('');
+  const twoFaCode = ref('');
+
+  const resetTwoFa = () => {
+    twoFaTicket.value = '';
+    twoFaCode.value = '';
+    errorMessage.value = '';
+  };
+
+  const afterLogin = () => {
+    const { redirect, ...othersQuery } = router.currentRoute.value.query;
+    router.push({
+      name: (redirect as string) || 'Workplace',
+      query: {
+        ...othersQuery,
+      },
+    });
+    Message.success(t('login.form.login.success'));
+  };
+
   const handleSubmit = async ({
     errors,
     values,
@@ -96,15 +140,19 @@
     if (!errors) {
       setLoading(true);
       try {
-        await userStore.login(values as LoginData);
-        const { redirect, ...othersQuery } = router.currentRoute.value.query;
-        router.push({
-          name: (redirect as string) || 'Workplace',
-          query: {
-            ...othersQuery,
-          },
-        });
-        Message.success(t('login.form.login.success'));
+        if (twoFaTicket.value) {
+          const res = await login2fa(twoFaTicket.value, twoFaCode.value);
+          setToken(res.data.access_token);
+          afterLogin();
+          return;
+        }
+        const twoFa = await userStore.login(values as LoginData);
+        if (twoFa && twoFa.need_2fa) {
+          twoFaTicket.value = twoFa.ticket;
+          errorMessage.value = '';
+          return;
+        }
+        afterLogin();
         // 只记住用户名，密码不做本地存储
         const { rememberPassword } = loginConfig.value;
         const { username } = values;

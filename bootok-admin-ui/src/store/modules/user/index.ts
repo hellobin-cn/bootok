@@ -61,11 +61,15 @@ const useUserStore = defineStore('user', {
       });
     },
 
-    // Login
+    // Login：返回 need_2fa 票券信息时由登录页进入二步验证，不在此落 token
     async login(loginForm: LoginData) {
       try {
         const res = await userLogin(loginForm);
+        if (res.data.need_2fa) {
+          return { need_2fa: true, ticket: res.data.ticket ?? '' };
+        }
         setToken(res.data.access_token);
+        return null;
       } catch (err) {
         clearToken();
         throw err;
