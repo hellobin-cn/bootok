@@ -151,7 +151,7 @@
       @ok="handleUpdatePassword"
       @cancel="passwordVisible = false"
     >
-      <a-form :model="passwordForm">
+      <a-form :model="passwordForm" label-align="right" auto-label-width>
         <a-form-item label="原密码" required>
           <a-input-password v-model="passwordForm.oldPassword" />
         </a-form-item>

@@ -9,7 +9,7 @@
       </a-alert>
       <a-tabs v-if="groups.length" v-model:active-key="activeGroup">
         <a-tab-pane v-for="g in groups" :key="g" :title="g">
-          <a-form :model="form" auto-label-width style="max-width: 720px">
+          <a-form :model="form" label-align="right" auto-label-width style="max-width: 720px">
             <a-form-item
               v-for="item in byGroup[g]"
               :key="item.name"

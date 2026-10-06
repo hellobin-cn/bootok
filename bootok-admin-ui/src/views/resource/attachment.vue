@@ -209,7 +209,7 @@
       @before-ok="submitMkdir"
       :ok-loading="mkdirSaving"
     >
-      <a-form :model="mkdirForm" :label-col-props="{ span: 5 }" :wrapper-col-props="{ span: 19 }">
+      <a-form :model="mkdirForm" label-align="right" auto-label-width>
         <a-form-item label="目录名" required>
           <a-input v-model="mkdirForm.name" placeholder="如：产品图" @press-enter="() => submitMkdir()" />
         </a-form-item>
@@ -225,7 +225,7 @@
       @before-ok="submitRenameFile"
       :ok-loading="renameSaving"
     >
-      <a-form :model="renameForm" :label-col-props="{ span: 5 }" :wrapper-col-props="{ span: 19 }">
+      <a-form :model="renameForm" label-align="right" auto-label-width>
         <a-form-item label="新名称" required>
           <a-input v-model="renameForm.name" @press-enter="() => submitRenameFile()" />
         </a-form-item>

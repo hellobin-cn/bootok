@@ -1,6 +1,6 @@
 <template>
   <a-card title="编辑权限组" :bordered="false">
-    <a-form :model="form" auto-label-width style="max-width: 960px">
+    <a-form :model="form" label-align="right" auto-label-width style="max-width: 960px">
       <a-form-item label="名称" required>
         <a-input v-model="form.groupName" placeholder="填写权限组名称" />
       </a-form-item>

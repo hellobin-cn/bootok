@@ -109,7 +109,7 @@
       @ok="saveTask"
       @cancel="editVisible = false"
     >
-      <a-form :model="editForm" auto-label-width>
+      <a-form :model="editForm" label-align="right" auto-label-width>
         <a-form-item label="任务名" required>
           <a-input v-model="editForm.name" placeholder="唯一名称，如 每日对账" />
         </a-form-item>

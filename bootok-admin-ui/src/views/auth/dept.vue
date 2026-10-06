@@ -50,7 +50,7 @@
     @before-ok="submitForm"
     :ok-loading="saving"
   >
-    <a-form :model="form" :label-col-props="{ span: 5 }" :wrapper-col-props="{ span: 19 }">
+    <a-form :model="form" label-align="right" auto-label-width>
       <a-form-item label="上级部门">
         <a-select v-model="form.parentId" placeholder="不选则为根部门" allow-clear :disabled="!!form.id">
           <a-option :value="0">根部门</a-option>

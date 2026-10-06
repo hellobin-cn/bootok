@@ -99,7 +99,7 @@
       @before-ok="submitType"
       :ok-loading="typeSaving"
     >
-      <a-form :model="typeForm" :label-col-props="{ span: 5 }" :wrapper-col-props="{ span: 19 }">
+      <a-form :model="typeForm" label-align="right" auto-label-width>
         <a-form-item label="名称" required>
           <a-input v-model="typeForm.name" placeholder="如：行业" />
         </a-form-item>
@@ -121,7 +121,7 @@
       @before-ok="submitItem"
       :ok-loading="itemSaving"
     >
-      <a-form :model="itemForm" :label-col-props="{ span: 5 }" :wrapper-col-props="{ span: 19 }">
+      <a-form :model="itemForm" label-align="right" auto-label-width>
         <a-form-item label="显示文本" required>
           <a-input v-model="itemForm.label" placeholder="如：互联网" />
         </a-form-item>
