@@ -16,6 +16,7 @@ export default {
   'menu.system.config': 'Config',
   'menu.system.setting': 'Setting',
   'menu.system.online': 'Online Sessions',
+  'menu.system.dict': 'Data Dictionary',
   'menu.system.task': 'Task',
   'menu.security': 'Security Audit',
   'menu.security.log': 'Operation Log',

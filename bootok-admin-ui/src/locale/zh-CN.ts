@@ -16,6 +16,7 @@ export default {
   'menu.system.config': '系统配置',
   'menu.system.setting': '参数设置',
   'menu.system.online': '在线会话',
+  'menu.system.dict': '数据字典',
   'menu.system.task': '计划任务',
   'menu.security': '安全审计',
   'menu.security.log': '操作日志',

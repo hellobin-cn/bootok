@@ -51,6 +51,17 @@ const SYSTEM: AppRouteRecordRaw = {
       },
     },
     {
+      path: 'dict',
+      name: 'SystemDict',
+      component: () => import('@/views/system/dict.vue'),
+      meta: {
+        locale: 'menu.system.dict',
+        title: '数据字典',
+        requiresAuth: true,
+        perms: ['dict-type.rows'],
+      },
+    },
+    {
       path: 'task',
       name: 'SystemTask',
       component: () => import('@/views/system/task.vue'),
