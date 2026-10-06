@@ -2,6 +2,7 @@
 
 namespace app\process;
 
+use app\model\Message;
 use support\Log;
 
 /**
@@ -29,6 +30,12 @@ class TaskRegistry
                 'cron'   => '0 3 * * *',
                 'action' => function () {
                     Log::info('crontab 示例每日任务执行');
+                },
+            ],
+            '消息清理' => [
+                'cron'   => '30 4 * * *',
+                'action' => function () {
+                    Message::where('created_at', '<', date('Y-m-d H:i:s', time() - 90 * 86400))->delete();
                 },
             ],
         ];

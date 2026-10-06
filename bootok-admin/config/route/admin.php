@@ -16,6 +16,7 @@ use app\controller\admin\IndexController;
 use app\controller\admin\MailChannelController;
 use app\controller\admin\MailLogController;
 use app\controller\admin\MailTemplateController;
+use app\controller\admin\MessageController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
 use app\controller\admin\SslTaskController;
@@ -85,6 +86,12 @@ Route::group('', function () {
         Route::post('/dept', [DeptController::class, 'create']);
         Route::put('/dept/{id:\d+}', [DeptController::class, 'rename']);
         Route::delete('/dept/{id:\d+}', [DeptController::class, 'remove']);
+        // 站内消息（个人数据，登录即可，不过 purview）
+        Route::get('/message/latest', [MessageController::class, 'latest']);
+        Route::get('/message/rows', [MessageController::class, 'rows']);
+        Route::post('/message/read', [MessageController::class, 'read']);
+        Route::post('/message/read-all', [MessageController::class, 'readAll']);
+        Route::delete('/message/{id:\d+}', [MessageController::class, 'remove']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);

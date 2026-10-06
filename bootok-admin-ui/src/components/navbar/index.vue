@@ -118,6 +118,57 @@
         </a-tooltip>
       </li>
       <li>
+        <a-popover
+          trigger="click"
+          position="br"
+          content-class="message-popover"
+          @popup-visible-change="onMessagePop"
+        >
+          <a-badge :count="unreadCount" :max-count="99" :offset="[2, 4]">
+            <a-button class="nav-btn" type="outline" :shape="'circle'">
+              <template #icon>
+                <icon-bell />
+              </template>
+            </a-button>
+          </a-badge>
+          <template #content>
+            <div class="message-panel">
+              <div class="message-panel-head">
+                <span>未读消息（{{ unreadCount }}）</span>
+                <a-space size="mini">
+                  <a-link @click="readAllMessages">全部已读</a-link>
+                  <a-link @click="goMessageCenter">查看全部</a-link>
+                </a-space>
+              </div>
+              <div
+                v-for="item in recentMessages"
+                :key="item.message_id"
+                class="message-item"
+                @click="openMessage(item)"
+              >
+                <div class="message-item-line">
+                  <a-tag size="small" :color="messageTypeColor(item.type)">
+                    {{ messageTypeText(item.type) }}
+                  </a-tag>
+                  <span
+                    class="message-item-title"
+                    :class="{ unread: !item.is_read }"
+                  >
+                    {{ item.title }}
+                  </span>
+                </div>
+                <div class="message-item-time">{{ item.created_at }}</div>
+              </div>
+              <a-empty
+                v-if="!recentMessages.length"
+                description="暂无消息"
+                style="padding: 12px 0"
+              />
+            </div>
+          </template>
+        </a-popover>
+      </li>
+      <li>
         <a-dropdown trigger="click">
           <a-avatar
             :size="32"
@@ -167,9 +218,11 @@
 </template>
 
 <script lang="ts" setup>
-  import { computed, inject, ref } from 'vue';
+  import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
   import { useDark, useToggle, useFullscreen } from '@vueuse/core';
+  import { useRouter } from 'vue-router';
+  import axios from 'axios';
   import { useAppStore, useUserStore } from '@/store';
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
@@ -247,6 +300,63 @@
     }
   };
   const toggleDrawerMenu = inject('toggleDrawerMenu') as () => void;
+
+  // ===== 站内消息：铃铛未读数 30s 轮询 + 最近消息下拉 =====
+  const router = useRouter();
+  const unreadCount = ref(0);
+  const recentMessages = ref<any[]>([]);
+  let messageTimer = 0;
+
+  const messageTypeMap: Record<string, { text: string; color: string }> = {
+    notice: { text: '通知', color: 'gray' },
+    task: { text: '任务', color: 'orangered' },
+    ssl: { text: '证书', color: 'arcoblue' },
+    security: { text: '安全', color: 'red' },
+  };
+  const messageTypeText = (type: string) => messageTypeMap[type]?.text ?? '通知';
+  const messageTypeColor = (type: string) => messageTypeMap[type]?.color ?? 'gray';
+
+  async function loadMessages() {
+    try {
+      const res: any = await axios.get('/message/latest');
+      unreadCount.value = res.data?.unread ?? 0;
+      recentMessages.value = res.data?.items ?? [];
+    } catch {
+      // 轮询失败静默（登录失效由拦截器统一处理）
+    }
+  }
+
+  function onMessagePop(visible: boolean) {
+    if (visible) {
+      loadMessages();
+    }
+  }
+
+  async function readAllMessages() {
+    await axios.post('/message/read-all', {});
+    await loadMessages();
+    Message.success('已全部标记为已读');
+  }
+
+  async function openMessage(item: any) {
+    if (!item.is_read) {
+      await axios.post('/message/read', { ids: [item.message_id] });
+      await loadMessages();
+    }
+    if (item.link) {
+      router.push(item.link);
+    }
+  }
+
+  function goMessageCenter() {
+    router.push({ name: 'SystemMessage' });
+  }
+
+  onMounted(() => {
+    loadMessages();
+    messageTimer = window.setInterval(loadMessages, 30000);
+  });
+  onUnmounted(() => window.clearInterval(messageTimer));
 </script>
 
 <style scoped lang="less">
@@ -305,6 +415,52 @@
   .message-popover {
     .arco-popover-content {
       margin-top: 0;
+    }
+  }
+
+  .message-panel {
+    width: 320px;
+
+    .message-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 4px 8px;
+      font-weight: 500;
+    }
+
+    .message-item {
+      padding: 8px 4px;
+      border-top: 1px solid var(--color-border);
+      cursor: pointer;
+
+      &:hover {
+        background: var(--color-fill-1);
+      }
+
+      .message-item-line {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .message-item-title {
+        font-size: 13px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+
+        &.unread {
+          font-weight: 600;
+        }
+      }
+
+      .message-item-time {
+        font-size: 12px;
+        color: var(--color-text-3);
+        margin-top: 2px;
+        padding-left: 2px;
+      }
     }
   }
 </style>

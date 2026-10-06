@@ -4,6 +4,7 @@ namespace app\process;
 
 use app\model\Task;
 use app\model\TaskRun;
+use app\service\MessageService;
 use support\Log;
 use Workerman\Crontab\Crontab as CrontabTask;
 use Workerman\Timer;
@@ -127,6 +128,7 @@ class Crontab
             $status = 0;
             $error = mb_substr($e->getMessage(), 0, 500);
             Log::error("任务 {$name} 失败: " . $e->getMessage());
+            (new MessageService())->sendToSupers("任务「{$name}」执行失败", $error, MessageService::TYPE_TASK, '/system/task');
         }
         $run->status = $status;
         $run->duration_ms = (int)((microtime(true) - $started) * 1000);

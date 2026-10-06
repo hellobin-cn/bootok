@@ -72,6 +72,16 @@ const SYSTEM: AppRouteRecordRaw = {
         perms: ['task.run'],
       },
     },
+    {
+      path: 'message',
+      name: 'SystemMessage',
+      component: () => import('@/views/system/message.vue'),
+      meta: {
+        locale: 'menu.system.message',
+        title: '消息中心',
+        requiresAuth: true,
+      },
+    },
   ],
 };
 

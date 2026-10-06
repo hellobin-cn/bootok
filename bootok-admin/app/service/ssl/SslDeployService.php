@@ -8,6 +8,7 @@ use app\model\SslTask;
 use phpseclib3\Crypt\PublicKeyLoader;
 use phpseclib3\Net\SFTP;
 use phpseclib3\Net\SSH2;
+use app\service\MessageService;
 use support\Log;
 
 /**
@@ -51,6 +52,12 @@ class SslDeployService
                 $this->record($target, 'failed', $e->getMessage());
                 $failed++;
                 Log::error('ssl.deploy_failed', ['deploy_id' => $target->id, 'task_id' => $task->id, 'error' => $e->getMessage()]);
+                (new MessageService())->sendToSupers(
+                    "证书部署失败：{$target->domain}",
+                    $e->getMessage(),
+                    MessageService::TYPE_SSL,
+                    '/ssl/deploy'
+                );
             }
         }
 

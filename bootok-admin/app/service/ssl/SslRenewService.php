@@ -8,6 +8,7 @@ use BootOk\Acme\AcmeClient;
 use BootOk\Acme\CertificateIssuer;
 use BootOk\Acme\Dns\AliyunProvider;
 use BootOk\Acme\Dns\DnsProvider;
+use app\service\MessageService;
 use support\Log;
 
 /**
@@ -90,6 +91,12 @@ class SslRenewService
             } catch (\Throwable $e) {
                 $failed++;
                 Log::error('ssl.renew_failed', ['id' => $row->id, 'error' => $e->getMessage()]);
+                (new MessageService())->sendToSupers(
+                    '证书续期失败：' . implode('、', $domains),
+                    $e->getMessage(),
+                    MessageService::TYPE_SSL,
+                    '/ssl/cert'
+                );
             }
         }
 

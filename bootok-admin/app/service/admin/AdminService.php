@@ -6,6 +6,7 @@ use app\entity\ServiceResult;
 use app\enum\Code;
 use app\model\Admin;
 use app\model\LoginLog;
+use app\service\MessageService;
 use app\service\Service;
 use DI\Attribute\Inject;
 use support\Log;
@@ -38,8 +39,16 @@ class AdminService extends Service
         }
         $admin = Admin::where('admin_name', $username)->first();
         if ($admin == null || !verify_password($password, $admin->admin_password)) {
-            Redis::incr($failKey);
+            $fails = (int) Redis::incr($failKey);
             Redis::expire($failKey, self::FAIL_WINDOW);
+            // 达到阈值的临界一次才告警，窗口内的后续尝试不重复通知
+            if ($fails === self::FAIL_LIMIT) {
+                (new MessageService())->sendToSupers(
+                    "登录防爆破已锁定：{$username}",
+                    'IP ' . request()->getRealIp() . " 连续 {$fails} 次登录失败，该 IP+用户名 组合已被锁定 10 分钟。",
+                    MessageService::TYPE_SECURITY
+                );
+            }
             $this->recordLogin(0, (string)$username, false, '用户名或密码错误');
             $res->code = Code::FAIL->value;
             $res->message = '用户名或密码错误';
