@@ -74,6 +74,8 @@ Route::group('', function () {
         Route::post('/mail/log/{id:\d+}/resend', [MailLogController::class, 'resend']);
         // 附件统计（CRUD 走 /auto/attachment）
         Route::get('/attachment/stats', [AttachmentController::class, 'stats']);
+        // 附件批量签名地址（私有读桶的缩略图/预览场景）
+        Route::post('/attachment/signed-urls', [AttachmentController::class, 'signedUrls']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);

@@ -370,22 +370,36 @@
     return [...dirs, ...files];
   });
 
+  const signedUrls = ref<Record<number, string>>({});
+
+  // 私有读桶场景：图片/预览地址需带签名的临时 URL（公开读 CDN 地址本身可用，签名亦无害）
+  async function loadSignedUrls() {
+    const ids = allAttachments.value.filter((a) => isImage(a.ext)).map((a) => a.id).slice(0, 200);
+    if (ids.length === 0) {
+      signedUrls.value = {};
+      return;
+    }
+    const res: any = await api('POST', '/attachment/signed-urls', { ids });
+    if (res.code === '0') signedUrls.value = res.data?.urls ?? {};
+  }
+
   async function loadFiles() {
     filesLoading.value = true;
     try {
       const res: any = await api('POST', '/auto/attachment/rows?page=1&page_size=1000', { channel_id: currentChannelId.value });
-      if (res.code === '0') allAttachments.value = res.data?.data ?? [];
+      if (res.code === '0') {
+        allAttachments.value = res.data?.data ?? [];
+        await loadSignedUrls();
+      }
     } finally {
       filesLoading.value = false;
     }
   }
 
   // ---------- 类型 ----------
-  // 附件访问地址：相对路径拼 API 前缀；CDN 绝对地址直接用
+  // 附件访问地址：私有读桶用签名临时 URL，公开读直链/CDN 地址直接用
   function fileUrl(record: any): string {
-    const u = record.url ?? "";
-    if (!u || /^https?:\/\//.test(u)) return u;
-    return (import.meta.env.VITE_API_BASE_URL as string ?? "").replace(/\/$/, "") + u;
+    return signedUrls.value[record.id] || record.url || "";
   }
 
   const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
