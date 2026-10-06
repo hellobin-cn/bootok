@@ -67,6 +67,7 @@ class Admin extends Model
             Text::make('adminName', '用户名')->required(),
             Password::make('adminPassword', '密码')->help('编辑时留空表示不修改'),
             Select::make('groupId', '权限组')->options(Group::pluck('group_name', 'group_id')->toArray()),
+            Select::make('deptId', '所属部门')->options((new \app\service\admin\DeptService())->selectOptions())->help('数据权限按部门维度生效'),
             Radio::make('isSuper', '超级管理员')->options([0 => '否', 1 => '是'])->default(0),
         ];
     }

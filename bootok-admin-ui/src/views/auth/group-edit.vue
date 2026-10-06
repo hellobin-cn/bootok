@@ -4,6 +4,14 @@
       <a-form-item label="名称" required>
         <a-input v-model="form.groupName" placeholder="填写权限组名称" />
       </a-form-item>
+      <a-form-item label="数据范围" help="该组管理员可见的数据边界（业务数据按部门/创建人过滤）">
+        <a-radio-group v-model="form.dataScope">
+          <a-radio :value="1">全部数据</a-radio>
+          <a-radio :value="2">本部门及以下</a-radio>
+          <a-radio :value="3">仅本部门</a-radio>
+          <a-radio :value="4">仅本人</a-radio>
+        </a-radio-group>
+      </a-form-item>
       <a-form-item label="权限">
         <a-table :data="sections" :pagination="false" style="width: 100%">
           <template #columns>
@@ -92,6 +100,7 @@
   const form = ref({
     groupName: '',
     purview: [] as string[],
+    dataScope: 1 as number,
   });
 
   // 权限点显示名（去前缀）

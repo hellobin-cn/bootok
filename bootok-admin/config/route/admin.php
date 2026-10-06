@@ -9,6 +9,7 @@ use app\controller\admin\AdminController;
 use app\controller\admin\AttachmentController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\DictController;
+use app\controller\admin\DeptController;
 use app\controller\admin\DnsAccountController;
 use app\controller\admin\FolderController;
 use app\controller\admin\IndexController;
@@ -79,6 +80,11 @@ Route::group('', function () {
         Route::post('/attachment/signed-urls', [AttachmentController::class, 'signedUrls']);
         // 数据字典（类型/项 CRUD 走 /auto/dict-type、/auto/dict-item）
         Route::get('/dict/all', [DictController::class, 'all']);
+        // 部门管理（数据权限的组织树）
+        Route::get('/dept/all', [DeptController::class, 'all']);
+        Route::post('/dept', [DeptController::class, 'create']);
+        Route::put('/dept/{id:\d+}', [DeptController::class, 'rename']);
+        Route::delete('/dept/{id:\d+}', [DeptController::class, 'remove']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);

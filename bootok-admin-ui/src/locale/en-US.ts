@@ -34,6 +34,7 @@ export default {
   'menu.mail.log': 'Send Logs',
   'menu.auth': 'Auth',
   'menu.auth.admin': 'Admin',
+  'menu.auth.dept': 'Departments',
   'menu.auth.group': 'Group',
   'menu.auth.groupEdit': 'Edit Group',
   'menu.content': 'Content',

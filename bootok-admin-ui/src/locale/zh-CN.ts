@@ -34,6 +34,7 @@ export default {
   'menu.mail.log': '发送记录',
   'menu.auth': '权限管理',
   'menu.auth.admin': '管理员',
+  'menu.auth.dept': '部门管理',
   'menu.auth.group': '权限组',
   'menu.auth.groupEdit': '编辑权限组',
   'menu.content': '内容管理',

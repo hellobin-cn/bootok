@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
  * @property int $group_id
  * @property string $group_name
  * @property array $purview
+ * @property int    $data_scope
  */
 #[AutoResource(name: '权限组')]
 class Group extends Model

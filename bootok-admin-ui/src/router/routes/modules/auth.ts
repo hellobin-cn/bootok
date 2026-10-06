@@ -30,6 +30,17 @@ const AUTH: AppRouteRecordRaw = {
       },
     },
     {
+      path: 'dept',
+      name: 'AuthDept',
+      component: () => import('@/views/auth/dept.vue'),
+      meta: {
+        locale: 'menu.auth.dept',
+        title: '部门管理',
+        requiresAuth: true,
+        perms: ['dept.all'],
+      },
+    },
+    {
       path: 'group',
       name: 'AuthGroup',
       component: () => import('@/views/auth/group-list.vue'),

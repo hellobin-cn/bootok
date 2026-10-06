@@ -7,6 +7,7 @@ use app\enum\Code;
 use app\model\Model;
 use app\service\ModelResolver;
 use app\service\admin\ChangeLogService;
+use app\service\DataScopeService;
 use support\Response;
 
 /**
@@ -45,6 +46,11 @@ class ResourceController extends Controller
         return new $class();
     }
 
+    public function __construct(private readonly DataScopeService $dataScope)
+    {
+        parent::__construct();
+    }
+
     public function create(): Response
     {
         $model = $this->resolve('create');
@@ -52,6 +58,7 @@ class ResourceController extends Controller
             return $model;
         }
         $model->setData($this->request->post());
+        $this->assignDept($model);
         if ($message = $model->beforeSave()) {
             return $this->error($message);
         }
@@ -70,6 +77,9 @@ class ResourceController extends Controller
             return $model;
         }
         $item = $model->where($model->getKeyName(), urldecode($id))->first();
+        if ($item && !$this->dataScope->canRow($item, $this->adminId)) {
+            $item = null;
+        }
         if ($item) {
             $this->maskItems([$item], $model);
         }
@@ -87,6 +97,9 @@ class ResourceController extends Controller
         $item = $model->find($id);
         if (!$item) {
             return $this->error('数据不存在');
+        }
+        if (!$this->dataScope->canRow($item, $this->adminId)) {
+            return $this->error('无权操作该数据');
         }
         $item->setData($this->request->post());
         if ($message = $item->beforeSave()) {
@@ -112,6 +125,9 @@ class ResourceController extends Controller
         if (!$item) {
             return $this->error('数据不存在');
         }
+        if (!$this->dataScope->canRow($item, $this->adminId)) {
+            return $this->error('无权操作该数据');
+        }
         if ($item->delete()) {
             ChangeLogService::record($item, 'deleted', $item->getAttributes());
             $item->afterDeleted();
@@ -133,8 +149,7 @@ class ResourceController extends Controller
             return $this->error('该资源未启用软删除', Code::PARAM_VALIDATE->value);
         }
         $pageSize = max(1, min(100, (int)$this->request->input('page_size', 15)));
-        $paginator = $model
-            ->filter($this->request->post())
+        $paginator = $this->scoped($model)
             ->onlyTrashed()
             ->orderBy($model->getKeyName(), 'desc')
             ->paginate($pageSize, ['*'], 'page', (int)$this->request->input('page', 1));
@@ -179,6 +194,9 @@ class ResourceController extends Controller
         if (!$item) {
             return $this->error('数据不存在');
         }
+        if (!$this->dataScope->canRow($item, $this->adminId)) {
+            return $this->error('无权操作该数据');
+        }
         $original = $item->getAttributes();
         if (!$item->forceDelete()) {
             return $this->error('删除失败');
@@ -217,7 +235,7 @@ class ResourceController extends Controller
         if ($model instanceof Response) {
             return $model;
         }
-        $rows = $model->filter($this->request->all())->limit(self::ALL_LIMIT)->get();
+        $rows = $this->dataScope->apply($model->filter($this->request->all()), $model, $this->adminId)->limit(self::ALL_LIMIT)->get();
         $this->maskItems($rows, $model);
         return $this->success($rows);
     }
@@ -235,7 +253,7 @@ class ResourceController extends Controller
         if (!in_array($orderBy, $model->getColumns())) {
             $orderBy = $model->getKeyName();
         }
-        $paginator = $model->filter($this->request->post())->orderBy($orderBy, $orderType)->paginate($pageSize, ['*'], 'page', (int)$this->request->input('page', 1));
+        $paginator = $this->scoped($model)->orderBy($orderBy, $orderType)->paginate($pageSize, ['*'], 'page', (int)$this->request->input('page', 1));
         $this->maskItems($paginator->getCollection(), $model);
         return $this->success($paginator);
     }
@@ -249,7 +267,7 @@ class ResourceController extends Controller
         if ($model instanceof Response) {
             return $model;
         }
-        $rows = $model->filter($this->request->post())
+        $rows = $this->dataScope->apply($model->filter($this->request->post()), $model, $this->adminId)
             ->orderBy($model->getKeyName(), 'desc')
             ->limit(self::EXPORT_LIMIT)
             ->get();
@@ -309,6 +327,10 @@ class ResourceController extends Controller
         $success = 0;
         $fail = 0;
         foreach ($model->whereIn($model->getKeyName(), $ids)->get() as $item) {
+            if (!$this->dataScope->canRow($item, $this->adminId)) {
+                $fail++;
+                continue;
+            }
             if ($item->delete()) {
                 ChangeLogService::record($item, 'deleted', $item->getAttributes());
                 $item->afterDeleted();
@@ -321,6 +343,34 @@ class ResourceController extends Controller
             ['success' => $success, 'fail' => $fail],
             "已删除 {$success} 条" . ($fail > 0 ? "，失败 {$fail} 条" : '')
         );
+    }
+
+
+    /**
+     * create 时自动归属：admin_id 强制挂当前操作人（数据权限的行来源闭环）。
+     * admin_id 为模型主键时（sys_admin 自身）跳过，避免主键被覆盖成操作人 id。
+     */
+    private function assignDept(Model $model): void
+    {
+        $columns = $model->getColumns();
+        if (in_array('admin_id', $columns, true) && $model->getKeyName() !== 'admin_id' && empty($model->admin_id) && $this->adminId > 0) {
+            $model->admin_id = $this->adminId;
+        }
+        if (!in_array('dept_id', $columns, true) || !empty($model->dept_id)) {
+            return;
+        }
+        $admin = \app\model\Admin::find($this->adminId);
+        if ($admin !== null && $admin->dept_id > 0) {
+            $model->dept_id = $admin->dept_id;
+        }
+    }
+
+    /**
+     * 读入口统一数据范围注入
+     */
+    private function scoped(Model $model): \Illuminate\Database\Eloquent\Builder
+    {
+        return $this->dataScope->apply($model->filter($this->request->post()), $model, $this->adminId);
     }
 
     /**
