@@ -232,6 +232,7 @@
     const res = await groupApi.getItem(groupId);
     form.value.groupName = res.data.groupName ?? '';
     form.value.purview = res.data.purview ?? [];
+    form.value.dataScope = Number(res.data.dataScope ?? 1);
     sections.value = buildSections(form.value.purview);
   });
 
