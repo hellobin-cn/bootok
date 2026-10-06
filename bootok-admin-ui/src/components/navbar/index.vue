@@ -127,7 +127,7 @@
           <a-badge :count="unreadCount" :max-count="99" :offset="[2, 4]">
             <a-button class="nav-btn" type="outline" :shape="'circle'">
               <template #icon>
-                <icon-bell />
+                <icon-notification />
               </template>
             </a-button>
           </a-badge>
