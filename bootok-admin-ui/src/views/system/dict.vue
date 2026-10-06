@@ -1,47 +1,57 @@
 <template>
-  <div style="display: flex; gap: 12px; align-items: flex-start">
-    <!-- 左：字典类型 -->
-    <a-card :bordered="false" title="字典类型" style="flex: 0 0 340px" :body-style="{ padding: '0' }">
+  <div style="display: flex; gap: 12px; align-items: stretch; min-height: calc(100vh - 190px)">
+    <!-- 左：字典类型列表 -->
+    <a-card :bordered="false" style="flex: 0 0 320px" :body-style="{ padding: '8px' }">
+      <template #title>
+        <span class="card-title">字典类型</span>
+      </template>
       <template #extra>
         <a-button size="mini" type="primary" @click="openType()" v-permission="'dict-type.create'">
           <template #icon><icon-plus /></template>
           新建
         </a-button>
       </template>
-      <a-table
-        :data="types"
-        :loading="typeLoading"
-        :pagination="false"
-        size="small"
-        :bordered="{ cell: false }"
-        :row-class="(record) => (record.id === currentTypeId ? 'row-dir' : '')"
-      >
-        <template #columns>
-          <a-table-column title="名称" data-index="name" />
-          <a-table-column title="编码" data-index="code" />
-          <a-table-column title="操作" :width="90" align="center">
-            <template #cell="{ record }">
-              <a-space size="mini">
-                <a-button size="mini" type="text" @click="selectType(record)">{{ currentTypeId === record.id ? '刷新' : '项' }}</a-button>
-                <a-button size="mini" type="text" @click="openType(record)" v-permission="'dict-type.edit'">编辑</a-button>
-                <a-popconfirm content="删除类型将同时删除其全部字典项，确认？" type="warning" @ok="deleteType(record)">
-                  <a-button size="mini" status="danger" type="text" v-permission="'dict-type.delete'">删除</a-button>
-                </a-popconfirm>
-              </a-space>
-            </template>
-          </a-table-column>
-        </template>
-      </a-table>
+
+      <a-spin :loading="typeLoading" style="display: block; width: 100%">
+        <div v-if="types.length === 0" class="type-empty">暂无字典类型</div>
+        <div
+          v-for="t in types"
+          :key="t.id"
+          class="type-item"
+          :class="{ active: currentTypeId === t.id }"
+          @click="selectType(t)"
+        >
+          <div class="type-main">
+            <div class="type-name">{{ t.name }}</div>
+            <div class="type-code">{{ t.code }}</div>
+          </div>
+          <div class="type-actions" @click.stop>
+            <a-button size="mini" type="text" @click="openType(t)" v-permission="'dict-type.edit'">
+              <icon-edit style="font-size: 14px" />
+            </a-button>
+            <a-popconfirm content="删除类型将同时删除其全部字典项，确认？" type="warning" @ok="deleteType(t)">
+              <a-button size="mini" type="text" status="danger" v-permission="'dict-type.delete'">
+                <icon-delete style="font-size: 14px" />
+              </a-button>
+            </a-popconfirm>
+          </div>
+        </div>
+      </a-spin>
     </a-card>
 
     <!-- 右：字典项 -->
-    <a-card :bordered="false" :title="`字典项${currentTypeName ? ' · ' + currentTypeName : ''}`" style="flex: 1 1 auto" :body-style="{ padding: '0' }">
+    <a-card :bordered="false" style="flex: 1 1 auto" :body-style="{ padding: '8px' }">
+      <template #title>
+        <span class="card-title">字典项{{ currentTypeName ? ` · ${currentTypeName}` : '' }}</span>
+        <a-tag v-if="currentTypeCode" size="small" style="margin-left: 8px">{{ currentTypeCode }}</a-tag>
+      </template>
       <template #extra>
         <a-button size="mini" type="primary" :disabled="!currentTypeId" @click="openItem()" v-permission="'dict-item.create'">
           <template #icon><icon-plus /></template>
           新建项
         </a-button>
       </template>
+
       <a-table
         :data="items"
         :loading="itemLoading"
@@ -50,16 +60,23 @@
         :bordered="{ cell: false }"
       >
         <template #columns>
-          <a-table-column title="显示文本" data-index="label" />
-          <a-table-column title="存储值" data-index="value" />
-          <a-table-column title="排序" data-index="sort" :width="70" align="center" />
-          <a-table-column title="状态" :width="90" align="center">
+          <a-table-column title="显示文本" data-index="label" :width="180" />
+          <a-table-column title="存储值">
             <template #cell="{ record }">
-              <a-tag v-if="record.status" color="green" size="small">启用</a-tag>
-              <a-tag v-else color="gray" size="small">停用</a-tag>
+              <code class="value-code">{{ record.value }}</code>
             </template>
           </a-table-column>
-          <a-table-column title="操作" :width="130" align="center">
+          <a-table-column title="排序" data-index="sort" :width="70" align="center" />
+          <a-table-column title="启用" :width="90" align="center">
+            <template #cell="{ record }">
+              <a-switch
+                :model-value="!!record.status"
+                size="small"
+                @change="(v: any) => toggleItem(record, v)"
+              />
+            </template>
+          </a-table-column>
+          <a-table-column title="操作" :width="150" align="center">
             <template #cell="{ record }">
               <a-space size="mini">
                 <a-button size="mini" type="text" @click="openItem(record)" v-permission="'dict-item.edit'">编辑</a-button>
@@ -150,6 +167,7 @@
   const typeLoading = ref(false);
   const currentTypeId = ref<number | null>(null);
   const currentTypeName = ref('');
+  const currentTypeCode = ref('');
 
   const typeVisible = ref(false);
   const typeSaving = ref(false);
@@ -165,6 +183,7 @@
         if (currentTypeId.value && !types.value.some((t) => t.id === currentTypeId.value)) {
           currentTypeId.value = null;
           currentTypeName.value = '';
+          currentTypeCode.value = '';
           items.value = [];
         }
       }
@@ -176,6 +195,7 @@
   function selectType(record: any) {
     currentTypeId.value = record.id;
     currentTypeName.value = record.name;
+    currentTypeCode.value = record.code;
     loadItems();
   }
 
@@ -206,6 +226,11 @@
         Message.success(typeForm.id ? '已更新' : '已创建');
         typeVisible.value = false;
         await loadTypes();
+        // 新建后自动选中并加载字典项
+        if (!typeForm.id) {
+          const fresh = types.value.find((t) => t.code === typeForm.code.trim());
+          if (fresh) selectType(fresh);
+        }
         done?.(true);
       }
     } catch (e: any) {
@@ -284,6 +309,16 @@
     }
   }
 
+  async function toggleItem(record: any, enabled: boolean) {
+    // hump2underline 为原地转换无返回值（项目约定：先赋值再转换）
+    const payload: any = { status: enabled ? 1 : 0 };
+    field.hump2underline(payload);
+    const res = await api('PUT', `/auto/dict-item/${record.id}`, payload);
+    if (res.code === '0') {
+      record.status = enabled ? 1 : 0;
+    }
+  }
+
   async function deleteItem(record: any) {
     const res = await api('DELETE', `/auto/dict-item/${record.id}`);
     if (res.code === '0') {
@@ -298,13 +333,66 @@
   });
 </script>
 
-<script lang="ts">
-  // DictType/DictItem 的 CRUD API：直接用全局 axios（api() 已覆盖），此处仅显式引入 BaseApi 备用
-  export default { name: 'SystemDict' };
-</script>
-
 <style scoped>
-  .row-dir :deep(.arco-table-td) {
-    background: var(--color-fill-1);
+  .card-title {
+    font-weight: 600;
+  }
+
+  /* 左：类型列表项 */
+  .type-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 10px 10px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 4px;
+    border: 1px solid transparent;
+  }
+  .type-item:hover {
+    background: var(--color-fill-2);
+  }
+  .type-item:hover .type-actions {
+    visibility: visible;
+  }
+  .type-item.active {
+    background: rgb(var(--blue-1));
+    border-color: rgb(var(--blue-2));
+  }
+  .type-item.active .type-name {
+    color: rgb(var(--blue-6));
+    font-weight: 600;
+  }
+  .type-main {
+    min-width: 0;
+  }
+  .type-name {
+    font-size: 14px;
+    color: var(--color-text-1);
+    line-height: 1.4;
+  }
+  .type-code {
+    font-size: 12px;
+    color: var(--color-text-3);
+    font-family: monospace;
+  }
+  .type-actions {
+    visibility: hidden;
+    display: flex;
+    flex: 0 0 auto;
+  }
+  .type-empty {
+    text-align: center;
+    color: var(--color-text-3);
+    padding: 32px 0;
+    font-size: 13px;
+  }
+
+  .value-code {
+    font-family: monospace;
+    font-size: 13px;
+    padding: 1px 6px;
+    background: var(--color-fill-2);
+    border-radius: 3px;
   }
 </style>
