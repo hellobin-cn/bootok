@@ -78,6 +78,7 @@
           </template>
         </a-input>
         <span
+          ref="captchaBox"
           class="captcha-box"
           title="点击刷新"
           @click="loadCaptcha"
@@ -106,7 +107,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, reactive, onMounted } from 'vue';
+  import { ref, reactive, onMounted, nextTick } from 'vue';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
   import { ValidatedError } from '@arco-design/web-vue/es/form/interface';
@@ -138,6 +139,17 @@
   // ===== 图形验证码（服务端开关开启后显示） =====
   const captchaEnabled = ref(false);
   const captchaSvg = ref('');
+  const captchaBox = ref<HTMLElement>();
+
+  /** 验证码图与输入框渲染高度像素级对齐（输入框实际高度由 Arco 主题计算得出，非固定值） */
+  function syncCaptchaHeight() {
+    const row = captchaBox.value?.closest('.arco-form-item') as HTMLElement | null;
+    const wrapper = row?.querySelector('.arco-input-wrapper') as HTMLElement | null;
+    if (captchaBox.value && wrapper) {
+      const h = wrapper.getBoundingClientRect().height;
+      captchaBox.value.style.height = `${h}px`;
+    }
+  }
 
   async function loadCaptcha() {
     try {
@@ -145,6 +157,8 @@
       captchaSvg.value = res.data?.svg ?? '';
       userInfo.captcha_key = res.data?.key ?? '';
       userInfo.captcha_code = '';
+      await nextTick();
+      syncCaptchaHeight();
     } catch {
       // 忽略，登录时服务端会再拦
     }
@@ -262,17 +276,17 @@
     }
   }
 
-  // 验证码图与输入框同高（Arco 默认输入框 36px）
+  // 验证码图高度由 syncCaptchaHeight 按输入框实际渲染高度写入；此处 32px 仅兜底
   .captcha-box {
     display: inline-flex;
     align-items: center;
-    height: 36px;
+    height: 32px;
     margin-left: 8px;
     cursor: pointer;
 
     :deep(svg) {
       display: block;
-      height: 36px;
+      height: 100%;
       width: auto;
       border-radius: 4px;
     }
