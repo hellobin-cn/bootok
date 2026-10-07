@@ -10,14 +10,15 @@
     :width="300"
     unmount-on-close
     :visible="visible"
-    :cancel-text="$t('settings.close')"
-    :hide-cancel="false"
     @cancel="cancel"
   >
     <template #title> {{ $t('settings.title') }} </template>
     <Block :options="contentOpts" :title="$t('settings.content')" />
     <Block :options="othersOpts" :title="$t('settings.otherSettings')" />
     <a-alert>{{ $t('settings.alertContent') }}</a-alert>
+    <template #footer>
+      <a-button @click="cancel">{{ $t('settings.close') }}</a-button>
+    </template>
   </a-drawer>
 </template>
 
