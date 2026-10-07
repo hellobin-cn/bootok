@@ -82,6 +82,16 @@ const SYSTEM: AppRouteRecordRaw = {
         requiresAuth: true,
       },
     },
+    {
+      path: 'backup',
+      name: 'SystemBackup',
+      component: () => import('@/views/system/backup.vue'),
+      meta: {
+        locale: 'menu.system.backup',
+        title: '数据备份',
+        requiresAuth: true,
+      },
+    },
   ],
 };
 

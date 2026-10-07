@@ -19,6 +19,7 @@ export default {
   'menu.system.dict': '数据字典',
   'menu.system.task': '计划任务',
   'menu.system.message': '消息中心',
+  'menu.system.backup': '数据备份',
   'menu.security': '安全审计',
   'menu.security.log': '操作日志',
   'menu.security.loginLog': '登录日志',

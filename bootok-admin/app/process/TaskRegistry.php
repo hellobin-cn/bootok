@@ -38,6 +38,12 @@ class TaskRegistry
                     Message::where('created_at', '<', date('Y-m-d H:i:s', time() - 90 * 86400))->delete();
                 },
             ],
+            '数据库备份' => [
+                'cron'   => '30 2 * * *',
+                'action' => function () {
+                    \support\Container::get(\app\service\backup\BackupService::class)->run('task');
+                },
+            ],
         ];
     }
 

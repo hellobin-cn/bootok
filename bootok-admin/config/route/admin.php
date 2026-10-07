@@ -7,6 +7,7 @@
 
 use app\controller\admin\AdminController;
 use app\controller\admin\AttachmentController;
+use app\controller\admin\BackupController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\DictController;
 use app\controller\admin\DeptController;
@@ -107,6 +108,12 @@ Route::group('', function () {
         // 队列观测（仅超管）
         Route::get('/queue/stats', [QueueController::class, 'stats']);
         Route::post('/queue/retry-failed', [QueueController::class, 'retryFailed']);
+        // 数据库备份（仅超管）
+        Route::get('/backup/rows', [BackupController::class, 'rows']);
+        Route::post('/backup/run', [BackupController::class, 'run']);
+        Route::get('/backup/{id:\d+}/download', [BackupController::class, 'download']);
+        Route::post('/backup/{id:\d+}/restore', [BackupController::class, 'restore']);
+        Route::delete('/backup/{id:\d+}', [BackupController::class, 'remove']);
         // 文件管理器目录（与渠道内真实前缀对应）
         Route::get('/storage/folders', [FolderController::class, 'index']);
         Route::post('/storage/folders/scan', [FolderController::class, 'scan']);

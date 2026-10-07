@@ -19,6 +19,7 @@ export default {
   'menu.system.dict': 'Data Dictionary',
   'menu.system.task': 'Task',
   'menu.system.message': 'Messages',
+  'menu.system.backup': 'DB Backup',
   'menu.security': 'Security Audit',
   'menu.security.log': 'Operation Log',
   'menu.security.loginLog': 'Login Log',
