@@ -21,6 +21,7 @@ export default {
   'menu.system.message': 'Messages',
   'menu.system.backup': 'DB Backup',
   'menu.system.monitor': 'System Monitor',
+  'menu.system.log': 'Logs',
   'menu.security': 'Security Audit',
   'menu.security.log': 'Operation Log',
   'menu.security.loginLog': 'Login Log',

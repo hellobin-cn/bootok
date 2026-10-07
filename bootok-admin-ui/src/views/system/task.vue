@@ -80,6 +80,53 @@
       </a-table>
     </a-card>
 
+    <!-- 队列监控（仅超管） -->
+    <a-card :bordered="false" title="队列监控" style="margin-bottom: 16px">
+      <template #extra>
+        <a-space>
+          <a-badge
+            :status="queue.heartbeat > 0 && Date.now() / 1000 - queue.heartbeat < 120 ? 'processing' : 'danger'"
+            text="消费进程"
+          />
+          <a-button size="small" :loading="queueLoading" @click="loadQueue">刷新</a-button>
+          <a-button
+            v-if="queue.failed > 0"
+            size="small"
+            type="primary"
+            status="warning"
+            :loading="retrying"
+            @click="retryFailed"
+          >
+            重排全部死信
+          </a-button>
+        </a-space>
+      </template>
+      <a-row :gutter="16" style="margin-bottom: 12px">
+        <a-col :span="8">
+          <a-statistic title="待处理（pending）" :value="queue.pending ?? 0" />
+        </a-col>
+        <a-col :span="8">
+          <a-statistic title="延迟中（delayed）" :value="queue.delayed ?? 0" />
+        </a-col>
+        <a-col :span="8">
+          <a-statistic title="死信（failed）" :value="queue.failed ?? 0" :value-style="{ color: queue.failed > 0 ? 'rgb(var(--red-6))' : undefined }" />
+        </a-col>
+      </a-row>
+      <a-table v-if="failedJobs.length" :data="failedJobs" :pagination="false" size="small">
+        <template #columns>
+          <a-table-column title="动作" :width="160">
+            <template #cell="{ record }">{{ record.job?.action }}</template>
+          </a-table-column>
+          <a-table-column title="尝试次数" :width="90" align="center">
+            <template #cell="{ record }">{{ record.job?.attempts }}</template>
+          </a-table-column>
+          <a-table-column title="失败原因" data-index="error" ellipsis />
+          <a-table-column title="失败时间" data-index="failed_at" :width="180" />
+        </template>
+      </a-table>
+      <a-empty v-else description="暂无死信任务" style="padding: 12px 0" />
+    </a-card>
+
     <a-card :bordered="false" title="最近执行记录">
       <a-table :data="recent" :loading="loading" :pagination="false">
         <template #columns>
@@ -200,6 +247,36 @@
     }
   }
 
+  // ===== 队列监控（仅超管端点，非超管 403 静默） =====
+  const queue = ref<any>({ pending: 0, delayed: 0, failed: 0, heartbeat: 0 });
+  const failedJobs = ref<any[]>([]);
+  const queueLoading = ref(false);
+  const retrying = ref(false);
+
+  async function loadQueue() {
+    queueLoading.value = true;
+    try {
+      const res: any = await axios.get('/queue/stats');
+      queue.value = res.data?.stats ?? {};
+      failedJobs.value = res.data?.failed ?? [];
+    } catch {
+      // 非超管或异常时保持零值
+    } finally {
+      queueLoading.value = false;
+    }
+  }
+
+  async function retryFailed() {
+    retrying.value = true;
+    try {
+      const res: any = await axios.post('/queue/retry-failed', {});
+      Message.success(res.message || '已重排');
+      await loadQueue();
+    } finally {
+      retrying.value = false;
+    }
+  }
+
   function openEdit(record?: any) {
     editForm.value = record
       ? { ...record }
@@ -258,6 +335,7 @@
   onMounted(() => {
     load();
     loadActions();
+    loadQueue();
   });
 </script>
 

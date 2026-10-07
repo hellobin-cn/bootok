@@ -20,6 +20,7 @@ use app\controller\admin\MailLogController;
 use app\controller\admin\MailTemplateController;
 use app\controller\admin\MessageController;
 use app\controller\admin\MonitorController;
+use app\controller\admin\LogController;
 use app\controller\admin\QueueController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
@@ -113,6 +114,9 @@ Route::group('', function () {
         Route::post('/queue/retry-failed', [QueueController::class, 'retryFailed']);
         // 系统监控（仅超管）
         Route::get('/monitor/system', [MonitorController::class, 'stats']);
+        // 运行日志（仅超管）
+        Route::get('/log/files', [LogController::class, 'files']);
+        Route::get('/log/tail', [LogController::class, 'tail']);
         // 数据库备份（仅超管）
         Route::get('/backup/rows', [BackupController::class, 'rows']);
         Route::post('/backup/run', [BackupController::class, 'run']);

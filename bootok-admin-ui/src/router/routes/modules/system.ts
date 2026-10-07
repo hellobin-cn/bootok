@@ -102,6 +102,16 @@ const SYSTEM: AppRouteRecordRaw = {
         requiresAuth: true,
       },
     },
+    {
+      path: 'log',
+      name: 'SystemLog',
+      component: () => import('@/views/system/log.vue'),
+      meta: {
+        locale: 'menu.system.log',
+        title: '运行日志',
+        requiresAuth: true,
+      },
+    },
   ],
 };
 
