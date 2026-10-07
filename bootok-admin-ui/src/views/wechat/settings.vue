@@ -104,25 +104,27 @@
       const res: any = await axios.get('/wechat/status');
       s.value = res.data ?? {};
       form.value.wechat_appid = s.value.appid ?? '';
+      form.value.wechat_token = s.value.token ?? '';
       form.value.wechat_welcome = s.value.welcome ?? '';
     } finally {
       loading.value = false;
     }
   }
 
+  /** 组装保存项：空值不提交（避免清掉后端已存凭据，如 AppSecret 不回显的场景） */
+  function buildItems(): Record<string, string> {
+    const items: Record<string, string> = {};
+    if (form.value.wechat_appid) items.wechat_appid = form.value.wechat_appid;
+    if (form.value.wechat_appsecret) items.wechat_appsecret = form.value.wechat_appsecret;
+    if (form.value.wechat_token) items.wechat_token = form.value.wechat_token;
+    if (form.value.wechat_welcome) items.wechat_welcome = form.value.wechat_welcome;
+    return items;
+  }
+
   async function save() {
     saving.value = true;
     try {
-      // Secret 为空表示不修改（后端已存值，避免空值覆盖真实凭据）
-      const items: Record<string, string> = {
-        wechat_appid: form.value.wechat_appid,
-        wechat_token: form.value.wechat_token,
-        wechat_welcome: form.value.wechat_welcome,
-      };
-      if (form.value.wechat_appsecret) {
-        items.wechat_appsecret = form.value.wechat_appsecret;
-      }
-      await axios.post('/config/settings', { items });
+      await axios.post('/config/settings', { items: buildItems() });
       Message.success('已保存');
       form.value.wechat_appsecret = '';
       await load();
@@ -134,15 +136,7 @@
   async function test() {
     testing.value = true;
     try {
-      const items: Record<string, string> = {
-        wechat_appid: form.value.wechat_appid,
-        wechat_token: form.value.wechat_token,
-        wechat_welcome: form.value.wechat_welcome,
-      };
-      if (form.value.wechat_appsecret) {
-        items.wechat_appsecret = form.value.wechat_appsecret;
-      }
-      await axios.post('/config/settings', { items });
+      await axios.post('/config/settings', { items: buildItems() });
       const res: any = await axios.get('/wechat/status');
       if (res.data?.token_ok) {
         Message.success('连通成功，凭据可用');

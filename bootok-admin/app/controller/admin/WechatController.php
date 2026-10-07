@@ -53,6 +53,7 @@ class WechatController extends Controller
         }
         return $this->success([
             'appid'        => $config['wechat_appid'] ?? '',
+            'token'        => $config['wechat_token'] ?? '',
             'welcome'      => $config['wechat_welcome'] ?? '',
             'configured'   => $configured,
             'token_ok'     => $tokenOk,
