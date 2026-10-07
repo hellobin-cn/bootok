@@ -19,6 +19,7 @@ use app\controller\admin\MailChannelController;
 use app\controller\admin\MailLogController;
 use app\controller\admin\MailTemplateController;
 use app\controller\admin\MessageController;
+use app\controller\admin\MonitorController;
 use app\controller\admin\QueueController;
 use app\controller\admin\ResourceController;
 use app\controller\admin\SslDeployController;
@@ -44,6 +45,8 @@ Route::group('', function () {
     Route::get('/', [IndexController::class, 'index']);
     Route::post('/login', [AdminController::class, 'login']);
     Route::post('/login/2fa', [AdminController::class, 'login2fa']);
+    // 健康检查（免认证，负载均衡/监控探针用）：DB/Redis/队列与任务心跳
+    Route::get('/health', [MonitorController::class, 'health']);
 
     Route::group('', function () {
 
@@ -108,6 +111,8 @@ Route::group('', function () {
         // 队列观测（仅超管）
         Route::get('/queue/stats', [QueueController::class, 'stats']);
         Route::post('/queue/retry-failed', [QueueController::class, 'retryFailed']);
+        // 系统监控（仅超管）
+        Route::get('/monitor/system', [MonitorController::class, 'stats']);
         // 数据库备份（仅超管）
         Route::get('/backup/rows', [BackupController::class, 'rows']);
         Route::post('/backup/run', [BackupController::class, 'run']);

@@ -92,6 +92,16 @@ const SYSTEM: AppRouteRecordRaw = {
         requiresAuth: true,
       },
     },
+    {
+      path: 'monitor',
+      name: 'SystemMonitor',
+      component: () => import('@/views/system/monitor.vue'),
+      meta: {
+        locale: 'menu.system.monitor',
+        title: '系统监控',
+        requiresAuth: true,
+      },
+    },
   ],
 };
 
