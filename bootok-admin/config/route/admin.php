@@ -25,6 +25,7 @@ use app\controller\admin\SslTaskController;
 use app\controller\admin\StorageChannelController;
 use app\controller\admin\TaskController;
 use app\controller\admin\UploadController;
+use app\controller\admin\UserPrefController;
 use app\middleware\Access;
 use app\middleware\AdminPortGuard;
 use app\middleware\OperationLog;
@@ -48,6 +49,9 @@ Route::group('', function () {
         // 自身相关端点，登录即可访问，不参与权限点校验
         Route::post('/logout', [AdminController::class, 'logout']);
         Route::post('/password', [AdminController::class, 'updatePassword']);
+        // 个人界面偏好（页面配置/主题/语言，登录即可）
+        Route::get('/user/pref', [UserPrefController::class, 'get']);
+        Route::put('/user/pref', [UserPrefController::class, 'save']);
         Route::post('/admin/totp/setup', [AdminController::class, 'totpSetup']);
         Route::post('/admin/totp/enable', [AdminController::class, 'totpEnable']);
         Route::post('/admin/totp/disable', [AdminController::class, 'totpDisable']);

@@ -54,6 +54,7 @@
   import TabBar from '@/components/tab-bar/index.vue';
   import usePermission from '@/hooks/permission';
   import useResponsive from '@/hooks/responsive';
+  import { initPrefSync } from '@/hooks/prefs';
   import PageLayout from './page-layout.vue';
 
   const isInit = ref(false);
@@ -102,6 +103,7 @@
   });
   onMounted(() => {
     isInit.value = true;
+    initPrefSync();
   });
 </script>
 

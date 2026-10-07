@@ -11,8 +11,7 @@
     unmount-on-close
     :visible="visible"
     :cancel-text="$t('settings.close')"
-    :ok-text="$t('settings.copySettings')"
-    @ok="copySettings"
+    :hide-cancel="false"
     @cancel="cancel"
   >
     <template #title> {{ $t('settings.title') }} </template>
@@ -24,17 +23,12 @@
 
 <script lang="ts" setup>
   import { computed } from 'vue';
-  import { Message } from '@arco-design/web-vue';
-  import { useI18n } from 'vue-i18n';
-  import { useClipboard } from '@vueuse/core';
   import { useAppStore } from '@/store';
   import Block from './block.vue';
 
   const emit = defineEmits(['cancel']);
 
   const appStore = useAppStore();
-  const { t } = useI18n();
-  const { copy } = useClipboard();
   const visible = computed(() => appStore.globalSettings);
   const contentOpts = computed(() => [
     { name: 'settings.navbar', key: 'navbar', defaultVal: appStore.navbar },
@@ -73,11 +67,6 @@
   const cancel = () => {
     appStore.updateSettings({ globalSettings: false });
     emit('cancel');
-  };
-  const copySettings = async () => {
-    const text = JSON.stringify(appStore.$state, null, 2);
-    await copy(text);
-    Message.success(t('settings.copySettings.message'));
   };
   const setVisible = () => {
     appStore.updateSettings({ globalSettings: true });
