@@ -78,7 +78,7 @@
           </template>
         </a-input>
         <span
-          style="cursor: pointer; line-height: 0; margin-left: 8px"
+          class="captcha-box"
           title="点击刷新"
           @click="loadCaptcha"
           v-html="captchaSvg"
@@ -259,6 +259,22 @@
 
     &-register-btn {
       color: var(--color-text-3) !important;
+    }
+  }
+
+  // 验证码图与输入框同高（Arco 默认输入框 36px）
+  .captcha-box {
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    margin-left: 8px;
+    cursor: pointer;
+
+    :deep(svg) {
+      display: block;
+      height: 36px;
+      width: auto;
+      border-radius: 4px;
     }
   }
 </style>
