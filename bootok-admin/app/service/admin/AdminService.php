@@ -6,6 +6,7 @@ use app\entity\ServiceResult;
 use app\enum\Code;
 use app\model\Admin;
 use app\model\LoginLog;
+use app\service\ConfigService;
 use app\service\MessageService;
 use app\service\Service;
 use DI\Attribute\Inject;use support\Log;
@@ -20,7 +21,7 @@ class AdminService extends Service
     private const FAIL_LIMIT = 5;
     private const FAIL_WINDOW = 600;
 
-    public function login($username, $password): ServiceResult
+    public function login($username, $password, string $captchaKey = '', string $captchaCode = ''): ServiceResult
     {
         $res = new ServiceResult();
         if ($username === null || $password === null) {
@@ -35,6 +36,15 @@ class AdminService extends Service
             $res->code = Code::FAIL->value;
             $res->message = '失败次数过多，请10分钟后再试';
             return $res;
+        }
+        // 图形验证码（配置中心开启后生效，一次性，验证失败不计入防爆破计数）
+        if ((bool) ConfigService::get('login_captcha', false)) {
+            if (!(new CaptchaService())->verify($captchaKey, $captchaCode)) {
+                $this->recordLogin(0, (string)$username, false, '验证码错误');
+                $res->code = Code::FAIL->value;
+                $res->message = '图形验证码不正确';
+                return $res;
+            }
         }
         $admin = Admin::where('admin_name', $username)->first();
         if ($admin == null || !verify_password($password, $admin->admin_password)) {
@@ -210,9 +220,10 @@ class AdminService extends Service
             $res->message = '原密码错误';
             return $res;
         }
-        if (strlen($newPassword ?? '') < 6) {
+        $policyError = PasswordPolicy::validate($newPassword ?? '');
+        if ($policyError !== '') {
             $res->code = Code::PARAM_VALIDATE->value;
-            $res->message = '新密码不能少于6位';
+            $res->message = $policyError;
             return $res;
         }
         if ($newPassword !== $rePassword) {

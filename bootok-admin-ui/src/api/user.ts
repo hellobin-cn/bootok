@@ -4,6 +4,8 @@ import type { HttpResponse } from '@/api/interceptor';
 export interface LoginData {
   username: string;
   password: string;
+  captcha_key?: string;
+  captcha_code?: string;
 }
 
 export interface LoginRes {
@@ -24,6 +26,14 @@ export interface UserInfoRes {
 
 export function login(data: LoginData) {
   return axios.post('/login', data) as unknown as Promise<HttpResponse<LoginRes>>;
+}
+
+export function loginConfig() {
+  return axios.get('/login/config') as unknown as Promise<HttpResponse<{ captcha: boolean }>>;
+}
+
+export function getCaptcha() {
+  return axios.get('/captcha') as unknown as Promise<HttpResponse<{ key: string; svg: string }>>;
 }
 
 export function login2fa(ticket: string, code: string) {

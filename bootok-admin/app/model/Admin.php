@@ -27,15 +27,29 @@ class Admin extends Model
     // totp_secret 与密码同级敏感，列表/详情/导出一律不外发
     protected $hidden = ['admin_password', 'totp_secret'];
 
+    /** PasswordPolicy 校验失败的消息（Attribute set 阶段暂存，beforeSave 返回） */
+    public ?string $passwordError = null;
+
     protected function adminPassword(): Attribute
     {
         return new Attribute(
-            set: fn($value) => $value === '' || $value === null ? $value : make_password($value)
+            set: function ($value) {
+                if ($value === '' || $value === null) {
+                    return $value;
+                }
+                $error = \app\service\admin\PasswordPolicy::validate($value);
+                $this->passwordError = $error !== '' ? $error : null;
+                return make_password($value);
+            }
         );
     }
 
     public function beforeSave(): string
     {
+        // 明文密码未通过策略（create/edit/updatePassword 共用此闸口）
+        if ($this->passwordError !== null) {
+            return $this->passwordError;
+        }
         // 编辑时密码留空表示不修改
         if ($this->exists && empty($this->admin_password)) {
             $this->offsetUnset('admin_password');

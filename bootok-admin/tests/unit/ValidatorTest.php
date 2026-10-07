@@ -37,7 +37,7 @@ class ValidatorTest extends TestCase
     {
         $v = new Admin();
         $this->assertFalse($v->scene('updatePassword')->check(['old_password' => 'a', 'new_password' => '123', 're_password' => '123']));
-        $this->assertSame('新密码不能少于6位', $v->getError());
+        $this->assertSame('密码长度不能少于 6 位', $v->getError());
     }
 
     public function testEditSceneAllowsEmptyPassword(): void
@@ -47,7 +47,7 @@ class ValidatorTest extends TestCase
         $v->scene('edit');
         $rule = new \ReflectionMethod($v, 'checkAdminPassword');
         $this->assertTrue($rule->invoke($v, '', '', []));
-        $this->assertSame('密码不能少于6位', $rule->invoke($v, '123', '', []));
+        $this->assertSame('密码长度不能少于 6 位', $rule->invoke($v, '123', '', []));
     }
 
     public function testCreateSceneRejectsEmptyPassword(): void

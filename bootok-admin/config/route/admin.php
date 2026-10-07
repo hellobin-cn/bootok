@@ -48,6 +48,9 @@ Route::group('', function () {
     Route::post('/login/2fa', [AdminController::class, 'login2fa']);
     // 健康检查（免认证，负载均衡/监控探针用）：DB/Redis/队列与任务心跳
     Route::get('/health', [MonitorController::class, 'health']);
+    // 登录页配置与图形验证码（免认证）
+    Route::get('/login/config', [AdminController::class, 'loginConfig']);
+    Route::get('/captcha', [AdminController::class, 'captcha']);
 
     Route::group('', function () {
 

@@ -12,7 +12,7 @@ class Admin extends Validate
         'username'       => 'require|max:50',
         'password'       => 'require',
         'old_password'   => 'require',
-        'new_password'   => 'require|min:6',
+        'new_password'   => 'require|checkNewPassword',
         're_password'    => 'require|confirm:new_password',
         'admin_name'     => 'require|max:50|checkAdminName',
         'admin_password' => 'checkAdminPassword',
@@ -55,13 +55,21 @@ class Admin extends Validate
     }
 
     /**
-     * 密码：新建必填且不少于6位，编辑留空表示不修改
+     * 自改密码：长度与强度走 PasswordPolicy（配置中心「安全」组）
+     */
+    protected function checkNewPassword($value, $rule, array $data = []): bool|string
+    {
+        return \app\service\admin\PasswordPolicy::validate((string) $value) ?: true;
+    }
+
+    /**
+     * 密码：新建必填；长度与强度走 PasswordPolicy（配置中心「安全」组），编辑留空表示不修改
      */
     protected function checkAdminPassword($value, $rule, array $data = []): bool|string
     {
         if ($value === null || $value === '') {
             return $this->currentScene == 'create' ? '请输入密码' : true;
         }
-        return mb_strlen((string)$value) < 6 ? '密码不能少于6位' : true;
+        return \app\service\admin\PasswordPolicy::validate((string) $value) ?: true;
     }
 }

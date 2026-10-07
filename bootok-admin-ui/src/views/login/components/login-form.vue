@@ -59,6 +59,31 @@
           </template>
         </a-input>
       </a-form-item>
+      <a-form-item
+        v-if="captchaEnabled"
+        field="captcha_code"
+        :rules="[{ required: true, message: '请输入图形验证码' }]"
+        :validate-trigger="['change', 'blur']"
+        hide-label
+      >
+        <a-input
+          v-model="userInfo.captcha_code"
+          placeholder="验证码"
+          :max-length="4"
+          allow-clear
+          style="width: 200px"
+        >
+          <template #prefix>
+            <icon-safe />
+          </template>
+        </a-input>
+        <span
+          style="cursor: pointer; line-height: 0; margin-left: 8px"
+          title="点击刷新"
+          @click="loadCaptcha"
+          v-html="captchaSvg"
+        />
+      </a-form-item>
       <a-space :size="16" direction="vertical">
         <div v-if="!twoFaTicket" class="login-form-password-actions">
           <a-checkbox
@@ -81,7 +106,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { ref, reactive } from 'vue';
+  import { ref, reactive, onMounted } from 'vue';
   import { useRouter } from 'vue-router';
   import { Message } from '@arco-design/web-vue';
   import { ValidatedError } from '@arco-design/web-vue/es/form/interface';
@@ -90,7 +115,7 @@
   import { useUserStore } from '@/store';
   import useLoading from '@/hooks/loading';
   import type { LoginData } from '@/api/user';
-  import { login2fa } from '@/api/user';
+  import { login2fa, loginConfig as fetchLoginConfig, getCaptcha } from '@/api/user';
   import { setToken } from '@/utils/auth';
 
   const router = useRouter();
@@ -106,6 +131,35 @@
   const userInfo = reactive({
     username: loginConfig.value.username,
     password: '',
+    captcha_key: '',
+    captcha_code: '',
+  });
+
+  // ===== 图形验证码（服务端开关开启后显示） =====
+  const captchaEnabled = ref(false);
+  const captchaSvg = ref('');
+
+  async function loadCaptcha() {
+    try {
+      const res: any = await getCaptcha();
+      captchaSvg.value = res.data?.svg ?? '';
+      userInfo.captcha_key = res.data?.key ?? '';
+      userInfo.captcha_code = '';
+    } catch {
+      // 忽略，登录时服务端会再拦
+    }
+  }
+
+  onMounted(async () => {
+    try {
+      const res: any = await fetchLoginConfig();
+      captchaEnabled.value = !!res.data?.captcha;
+      if (captchaEnabled.value) {
+        await loadCaptcha();
+      }
+    } catch {
+      // 配置读取失败按未开启处理
+    }
   });
 
   // 两步验证：登录响应 need_2fa 时进入动态码二步
@@ -159,6 +213,10 @@
         loginConfig.value.username = rememberPassword ? username : '';
       } catch (err) {
         errorMessage.value = (err as Error).message;
+        // 验证码一次性：登录失败即换新图
+        if (captchaEnabled.value) {
+          loadCaptcha();
+        }
       } finally {
         setLoading(false);
       }

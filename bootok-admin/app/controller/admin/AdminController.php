@@ -20,7 +20,30 @@ class AdminController extends Controller
 
     public function login(Request $request): Response
     {
-        return $this->uniResponse($this->adminService->login($request->post('username'), $request->post('password')));
+        return $this->uniResponse($this->adminService->login(
+            $request->post('username'),
+            $request->post('password'),
+            (string) $request->post('captcha_key', ''),
+            (string) $request->post('captcha_code', '')
+        ));
+    }
+
+    /**
+     * 登录页配置（免认证）：登录相关的服务端开关
+     */
+    public function loginConfig(): Response
+    {
+        return $this->success([
+            'captcha' => (bool) \app\service\ConfigService::get('login_captcha', false),
+        ]);
+    }
+
+    /**
+     * 图形验证码（免认证）：{key, svg}，5 分钟一次性
+     */
+    public function captcha(): Response
+    {
+        return $this->success((new \app\service\admin\CaptchaService())->issue());
     }
 
     /**
