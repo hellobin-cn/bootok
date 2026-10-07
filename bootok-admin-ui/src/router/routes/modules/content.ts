@@ -28,6 +28,7 @@ const CONTENT: AppRouteRecordRaw = {
           'article.delete',
           'article.export',
           'article.import',
+          'article.wechat_publish',
         ],
       },
     },

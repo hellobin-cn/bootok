@@ -29,6 +29,7 @@ use app\controller\admin\StorageChannelController;
 use app\controller\admin\TaskController;
 use app\controller\admin\UploadController;
 use app\controller\admin\UserPrefController;
+use app\controller\admin\WechatController;
 use app\middleware\Access;
 use app\middleware\AdminPortGuard;
 use app\middleware\OperationLog;
@@ -120,6 +121,15 @@ Route::group('', function () {
         // 运行日志（仅超管）
         Route::get('/log/files', [LogController::class, 'files']);
         Route::get('/log/tail', [LogController::class, 'tail']);
+        // 公众号管理（仅超管）
+        Route::get('/wechat/status', [WechatController::class, 'status']);
+        Route::get('/wechat/menu', [WechatController::class, 'menuGet']);
+        Route::post('/wechat/menu', [WechatController::class, 'menuSave']);
+        Route::delete('/wechat/menu', [WechatController::class, 'menuDelete']);
+        Route::get('/wechat/publish/rows', [WechatController::class, 'publishRows']);
+        Route::post('/wechat/publish', [WechatController::class, 'publishRun']);
+        Route::post('/wechat/publish/{id:\d+}/refresh', [WechatController::class, 'publishRefresh']);
+        Route::delete('/wechat/publish/{id:\d+}', [WechatController::class, 'publishRemove']);
         // 数据库备份（仅超管）
         Route::get('/backup/rows', [BackupController::class, 'rows']);
         Route::post('/backup/run', [BackupController::class, 'run']);

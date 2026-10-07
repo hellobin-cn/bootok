@@ -41,6 +41,16 @@ class QueueRegistry
                     }
                 },
             ],
+            'wechat.publish_article' => [
+                'title' => '文章发布到公众号（图片转存+建草稿+可选发布）',
+                'action' => function (array $args) {
+                    \support\Container::get(\app\service\wechat\Publisher::class)->runJob(
+                        (int) ($args['article_id'] ?? 0),
+                        (bool) ($args['auto_publish'] ?? false),
+                        (string) ($args['digest'] ?? '')
+                    );
+                },
+            ],
         ];
     }
 

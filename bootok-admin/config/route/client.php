@@ -9,6 +9,7 @@
  */
 
 use app\controller\client\ClientController;
+use app\controller\client\WechatCallbackController;
 use app\middleware\ClientPortGuard;
 use Webman\Route;
 
@@ -16,6 +17,9 @@ Route::group('/client/v1', function () {
 
     // 健康检查
     Route::get('/ping', [ClientController::class, 'ping']);
+
+    // 公众号服务器回调（接入验证 + 事件/消息，明文模式）
+    Route::add(['GET', 'POST'], '/wechat/callback', [WechatCallbackController::class, 'callback']);
 
     // 示例：文章列表（显式字段白名单，仅上架数据）
     Route::get('/articles', [ClientController::class, 'articles']);
