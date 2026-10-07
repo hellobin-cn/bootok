@@ -65,7 +65,8 @@
     &-text {
       margin-right: 4px;
       margin-left: 4px;
-      color: var(--color-fill-1);
+      // 压在恒定深蓝横幅上，固定浅色
+      color: rgba(255, 255, 255, 0.9);
       font-size: 20px;
     }
   }

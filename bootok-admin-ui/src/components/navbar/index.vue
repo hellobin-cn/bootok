@@ -283,13 +283,14 @@
 <script lang="ts" setup>
   import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
   import { Message } from '@arco-design/web-vue';
-  import { useDark, useToggle, useFullscreen } from '@vueuse/core';
+  import { useFullscreen } from '@vueuse/core';
   import { useRouter } from 'vue-router';
   import axios from 'axios';
   import { useAppStore, useUserStore } from '@/store';
   import { LOCALE_OPTIONS } from '@/locale';
   import useLocale from '@/hooks/locale';
   import useUser from '@/hooks/user';
+  import { toggleDark } from '@/hooks/theme';
   import { updatePassword, totpSetup, totpEnable, totpDisable, getUserInfo } from '@/api/user';
   import QRCode from 'qrcode';
   import Menu from '@/components/menu/index.vue';
@@ -310,23 +311,9 @@
     return appStore.theme;
   });
   const topMenu = computed(() => appStore.topMenu && appStore.menu);
-  const isDark = useDark({
-    selector: 'body',
-    attribute: 'arco-theme',
-    valueDark: 'dark',
-    valueLight: 'light',
-    // 固定默认浅色：不设 initialValue 时 VueUse 跟随系统深浅色，
-    // 深色系统环境下登录过一次 body 就被钉上 dark，退出后登录页变灰
-    initialValue: 'light',
-    storageKey: 'arco-theme',
-    onChanged(dark: boolean) {
-      // overridden default behavior
-      appStore.toggleTheme(dark);
-    },
-  });
-  const toggleTheme = useToggle(isDark);
+  // 主题由 App.vue 级 initTheme 统一应用（登录页等无导航栏页面也要生效），此处只负责切换
   const handleToggleTheme = () => {
-    toggleTheme();
+    toggleDark();
   };
   const setVisible = () => {
     appStore.updateSettings({ globalSettings: true });

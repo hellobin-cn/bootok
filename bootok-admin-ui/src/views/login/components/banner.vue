@@ -63,7 +63,8 @@
     }
 
     &-title {
-      color: var(--color-fill-1);
+      // 横幅底色恒定深蓝，不随主题翻转——文字必须固定浅色，暗黑下才可读
+      color: rgba(255, 255, 255, 0.9);
       font-weight: 500;
       font-size: 20px;
       line-height: 28px;
@@ -71,7 +72,7 @@
 
     &-sub-title {
       margin-top: 8px;
-      color: var(--color-text-3);
+      color: rgba(255, 255, 255, 0.65);
       font-size: 14px;
       line-height: 22px;
     }
