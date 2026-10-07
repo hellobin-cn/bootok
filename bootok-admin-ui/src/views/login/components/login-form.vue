@@ -66,24 +66,25 @@
         :validate-trigger="['change', 'blur']"
         hide-label
       >
-        <a-input
-          v-model="userInfo.captcha_code"
-          placeholder="验证码"
-          :max-length="4"
-          allow-clear
-          style="width: 200px"
-        >
-          <template #prefix>
-            <icon-safe />
-          </template>
-        </a-input>
-        <span
-          ref="captchaBox"
-          class="captcha-box"
-          title="点击刷新"
-          @click="loadCaptcha"
-          v-html="captchaSvg"
-        />
+        <div class="captcha-row">
+          <a-input
+            v-model="userInfo.captcha_code"
+            placeholder="验证码"
+            :max-length="4"
+            allow-clear
+          >
+            <template #prefix>
+              <icon-safe />
+            </template>
+          </a-input>
+          <span
+            ref="captchaBox"
+            class="captcha-box"
+            title="点击刷新"
+            @click="loadCaptcha"
+            v-html="captchaSvg"
+          />
+        </div>
       </a-form-item>
       <a-space :size="16" direction="vertical">
         <div v-if="!twoFaTicket" class="login-form-password-actions">
@@ -276,12 +277,24 @@
     }
   }
 
+  // 验证码行：输入框占满，图贴右缘（高度由 syncCaptchaHeight 同步）
+  .captcha-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+
+    .arco-input-wrapper {
+      flex: 1;
+    }
+  }
+
   // 验证码图高度由 syncCaptchaHeight 按输入框实际渲染高度写入；此处 32px 仅兜底
   .captcha-box {
     display: inline-flex;
     align-items: center;
+    flex: none;
     height: 32px;
-    margin-left: 8px;
     cursor: pointer;
 
     :deep(svg) {
