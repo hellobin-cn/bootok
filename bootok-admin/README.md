@@ -23,10 +23,9 @@
 ## 快速开始
 
 ```bash
-# 1. 配置 .env（数据库、Redis、JWT密钥）
-# 2. 导入建表脚本与种子数据
-mysql -uroot -p < database/bootok_admin.sql
-# 或参考 runtime/import.php 的 PDO 导入方式
+# 1. 配置 .env（数据库、Redis、JWT密钥，参考 .env.template）
+# 2. 建库建表 + 种子数据（库不存在自动创建，幂等可重跑）
+vendor/bin/phinx migrate      # Windows: vendor\bin\phinx.bat migrate
 # 3. 启动（Windows）
 php windows.php
 # Linux
@@ -160,5 +159,5 @@ app/
 ├── validate/                    # 轻量验证器（scene = action名）
 ├── service/                     # Token/Admin/Permission/ModelResolver
 └── enum/                        # Code / LabeledEnum / 业务枚举
-database/bootok_admin.sql        # 建表脚本 + 种子数据
+db/migrations/                   # Phinx 迁移：全部表结构与种子（vendor/bin/phinx migrate）
 ```

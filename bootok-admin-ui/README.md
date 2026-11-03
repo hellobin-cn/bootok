@@ -12,7 +12,7 @@ npm run dev        # http://localhost:5173，代理 /api -> 127.0.0.1:8787
 npm run build      # 类型检查 + 生产构建
 ```
 
-需要先启动后端 [bootok-admin](../bootok-admin)（webman，监听 8787）并导入 `database/bootok_admin.sql`。
+需要先启动后端 [bootok-admin](../bootok-admin)（webman，监听 8787，安装见其 README 的 phinx 步骤）。
 
 - 超级管理员：`admin / admin123`
 - 演示受限账号：`editor / editor123`（仅内容管理与文章增改）

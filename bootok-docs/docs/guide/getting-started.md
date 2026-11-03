@@ -20,8 +20,8 @@ composer install
 # 2. 配置 .env（数据库、Redis、JWT 密钥）
 #    参考默认 .env，生产环境见「部署」页检查单
 
-# 3. 建库 + 导入表结构与种子数据
-mysql -uroot -p < database/bootok_admin.sql
+# 3. 建库 + 全部表结构与种子（库不存在自动创建，幂等可重跑）
+vendor/bin/phinx migrate      # Windows: vendor\bin\phinx.bat migrate
 
 # 4. 启动
 php windows.php          # Windows 开发

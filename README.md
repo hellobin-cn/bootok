@@ -60,8 +60,8 @@ class Article extends Model
 # 服务端（bootok-admin）
 composer install
 cp .env.template .env      # 配置数据库、JWT 密钥（.env.template 有逐项注释）
-mysql -uroot -p bootok < bootok-admin/database/bootok_admin.sql
 cd bootok-admin
+vendor/bin/phinx migrate   # 自动建库 + 全部表结构与种子（Windows 用 vendor\bin\phinx.bat migrate）
 php windows.php            # Windows；Linux 用 php start.php start -d
 # 默认 http://127.0.0.1:8787
 
