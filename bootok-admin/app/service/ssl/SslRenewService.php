@@ -76,6 +76,7 @@ class SslRenewService
                     accountKeyPem: $row->account_key_pem,
                     email:         null,
                     dns:           self::dnsFor($row),
+                    proxy:         self::envProxy(),
                 );
                 $result = $issuer->issue($domains, $row->cert_key_pem);
 
@@ -101,5 +102,12 @@ class SslRenewService
         }
 
         return ['checked' => $checked, 'renewed' => $renewed, 'failed' => $failed];
+    }
+
+    /** ACME 出口代理（直连 CA 不通时 .env 配 ACME_PROXY，如 socks5h://127.0.0.1:10808） */
+    private static function envProxy(): ?string
+    {
+        $proxy = getenv('ACME_PROXY');
+        return is_string($proxy) && $proxy !== '' ? $proxy : null;
     }
 }

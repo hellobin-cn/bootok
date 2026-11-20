@@ -67,6 +67,7 @@ class SslWorker
             accountKeyPem: (string) $task->account_key_pem,
             email:         'admin@haoduoya.cc',
             dns:           $account->provider(),
+            proxy:         self::envProxy(),
         );
 
         $this->logStage($task, 'order', '开始签发：' . implode('、', $domains));
@@ -105,5 +106,12 @@ class SslWorker
         ]);
         $task->stage = $stage;
         $task->progress = json_encode($log, JSON_UNESCAPED_UNICODE);
+    }
+
+    /** ACME 出口代理（直连 CA 不通时 .env 配 ACME_PROXY，如 socks5h://127.0.0.1:10808） */
+    private static function envProxy(): ?string
+    {
+        $proxy = getenv('ACME_PROXY');
+        return is_string($proxy) && $proxy !== '' ? $proxy : null;
     }
 }
