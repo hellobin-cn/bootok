@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "807e87f4453055e582dccc171ef1252b",
+    "content-hash": "800d150af43867ecceff2cd3cfa0dea8",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -53,11 +53,11 @@
         },
         {
             "name": "bootok/acme",
-            "version": "v1.0.0",
+            "version": "v1.0.1",
             "source": {
                 "type": "git",
                 "url": "https://gitee.com/hellobin-cn/bootok-acme.git",
-                "reference": "7725e048366533227d8291241b242ddc29b85fed"
+                "reference": "d1145153abac858890669f422e14983f97d7692c"
             },
             "require": {
                 "ext-openssl": "*",
@@ -69,7 +69,11 @@
                     "BootOk\\Acme\\": "src/"
                 }
             },
-            "notification-url": "https://packagist.org/downloads/",
+            "autoload-dev": {
+                "psr-4": {
+                    "BootOk\\Acme\\Tests\\": "tests/"
+                }
+            },
             "license": [
                 "MIT"
             ],
@@ -82,7 +86,7 @@
             ],
             "description": "纯 PHP 实现的 ACME v2 (RFC 8555) 客户端，DNS-01 验证，PHP 8.2+，无重依赖",
             "keywords": [
-                "ACME",
+                "acme",
                 "certificate",
                 "dns-01",
                 "letsencrypt",
@@ -90,7 +94,7 @@
                 "tls",
                 "wildcard"
             ],
-            "time": "2026-10-04T14:30:20+00:00"
+            "time": "2026-11-20T08:42:43+00:00"
         },
         {
             "name": "bootok/http",

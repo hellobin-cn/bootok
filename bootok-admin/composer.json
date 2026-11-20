@@ -26,6 +26,12 @@
         "issues": "https://gitee.com/hellobin-cn/bootok/issues",
         "source": "https://gitee.com/hellobin-cn/bootok"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://gitee.com/hellobin-cn/bootok-acme.git"
+        }
+    ],
     "require": {
         "bootok/acme": "^1.0",
         "bootok/http": "^1.0",
