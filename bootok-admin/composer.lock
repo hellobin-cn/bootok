@@ -53,11 +53,11 @@
         },
         {
             "name": "bootok/acme",
-            "version": "v1.0.3",
+            "version": "v1.0.4",
             "source": {
                 "type": "git",
                 "url": "https://gitee.com/hellobin-cn/bootok-acme.git",
-                "reference": "d7f5a614b2924fe2559a01b4b53679177c342625"
+                "reference": "f16dd486b7f5cd233c0226c1e32ba1e7cb7979fc"
             },
             "require": {
                 "ext-openssl": "*",
@@ -94,7 +94,7 @@
                 "tls",
                 "wildcard"
             ],
-            "time": "2026-11-20T09:06:32+00:00"
+            "time": "2026-11-20T09:16:28+00:00"
         },
         {
             "name": "bootok/http",
