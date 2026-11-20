@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "800d150af43867ecceff2cd3cfa0dea8",
+    "content-hash": "bb57057e172b0bb3aec6b215d098479a",
     "packages": [
         {
             "name": "aliyuncs/oss-sdk-php",
@@ -53,11 +53,11 @@
         },
         {
             "name": "bootok/acme",
-            "version": "v1.0.4",
+            "version": "v1.0.5",
             "source": {
                 "type": "git",
                 "url": "https://gitee.com/hellobin-cn/bootok-acme.git",
-                "reference": "f16dd486b7f5cd233c0226c1e32ba1e7cb7979fc"
+                "reference": "0383bf5498e4c3b0784378e34b028f68a45d38f9"
             },
             "require": {
                 "ext-openssl": "*",
@@ -94,7 +94,7 @@
                 "tls",
                 "wildcard"
             ],
-            "time": "2026-11-20T09:16:28+00:00"
+            "time": "2026-11-20T09:31:27+00:00"
         },
         {
             "name": "bootok/http",
